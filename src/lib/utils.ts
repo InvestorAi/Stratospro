@@ -51,7 +51,7 @@ export function generateInvoice(clientData: { name: string, email: string, amoun
   // Footer
   doc.setFontSize(8);
   doc.setTextColor(180);
-  doc.text("Thank you for choosing Lumina. Payment is due within 14 days.", 105, 280, { align: "center" });
+  doc.text("Thank you for choosing Brandavox AI. Payment is due within 14 days.", 105, 280, { align: "center" });
 
   doc.save(`invoice_${clientData.name.toLowerCase().replace(/\s+/g, '_')}.pdf`);
 }

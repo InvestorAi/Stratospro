@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { BrainCircuit, Sparkles, Wand2, Mic2, Video, Send, Download, RefreshCw, Layers, Palette, PenTool } from "lucide-react";
 import { motion } from "motion/react";
-import { GoogleGenAI } from "@google/genai";
+import { BrandavoxAI } from "../lib/ai/deepseek-engine";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-
-// Initialize Gemini per Skill specs
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+import SmartUpgradeModal from "./SmartUpgradeModal";
 
 interface AICreativeStudioProps {
   user: any;
@@ -23,84 +21,60 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
 
-  // Sync activeTool with initialTool when it changes from parent
-  React.useEffect(() => {
-    if (initialTool) {
-      setActiveTool(initialTool);
-      setResult(null);
-    }
-  }, [initialTool]);
-
-  const generateContent = async () => {
-    if (!ai || !prompt) return;
+  const checkLimits = () => {
     if (!isPro && units <= 0) {
       setShowUpgradeModal(true);
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const generateContent = async () => {
+    if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const fullPrompt = `You are a world-class social media strategist. Generate 5 creative post ideas for the following topic: ${prompt}. Format as a JSON list of objects with 'headline', 'caption', 'hashtags', and 'visual_concept'. Return ONLY the JSON.`;
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: fullPrompt
-      });
-      const text = response.text || "";
-      // Simple parse to extract JSON if it was returned with markdown
-      const jsonStr = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
-      const resultObj = JSON.parse(jsonStr);
+      const resultObj = await BrandavoxAI.generateContent(
+        `You are a world-class social media strategist. Generate 5 creative post ideas for the following topic: ${prompt}. Format as a JSON list of objects with 'headline', 'caption', 'hashtags', and 'visual_concept'.`
+      );
       setResult(resultObj);
 
-      // Save to global activity
       await addDoc(collection(db, "chats", "global-nerve", "messages"), {
         senderId: user?.uid || "ai",
         senderName: user?.displayName || "Strategist",
-        text: `🚀 Generated content ideas for: ${prompt.substring(0, 50)}...`,
+        text: `🚀 [DeepSeek System] Synced content ideas for: ${prompt.substring(0, 30)}...`,
         timestamp: serverTimestamp(),
-        type: 'text'
+        isEncrypted: false,
       });
 
       if (!isPro) setUnits(prev => prev - 1);
     } catch (e) {
       console.error(e);
-      setResult([{ headline: "Error", caption: "Could not generate ideas. Please check your API key." }]);
+      setResult({ error: "DeepSeek Engine Failure" });
     }
     setGenerating(false);
   };
 
   const generateImage = async () => {
-    if (!ai || !prompt) return;
-    if (!isPro && units <= 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
+    if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const fullPrompt = `You are a cinematic visual engineer. Based on this prompt: "${prompt}", generate a technical blueprint for an 8K image. 
-      Format as JSON with: 'keywords' (array of 3 search terms), 'lighting', 'composition', 'lens', and 'description'. Return ONLY the JSON.`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: fullPrompt
-      });
-      
-      const data = JSON.parse(response.text.substring(response.text.indexOf('{'), response.text.lastIndexOf('}') + 1));
+      const data = await BrandavoxAI.generateImageBlueprint(prompt);
       const keyword = data.keywords[0] || "abstract";
       
       const imageData = {
         ...data,
-        url: `https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&q=80&w=1024&sig=${encodeURIComponent(keyword)}`,
+        url: `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1024&sig=${encodeURIComponent(keyword)}`,
         gen_id: `NEURAL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
       };
       
       setResult(imageData);
 
-      // Save to global activity
       await addDoc(collection(db, "chats", "global-nerve", "messages"), {
         senderId: user?.uid || "ai",
         senderName: user?.displayName || "Strategist",
-        text: `🎨 Synthesized 8K Vision: ${prompt.substring(0, 50)}...`,
+        text: `🎨 [DeepSeek-VL] Synthesized 8K Vision: ${prompt.substring(0, 30)}...`,
         timestamp: serverTimestamp(),
-        type: 'text'
+        isEncrypted: false,
       });
 
       if (!isPro) setUnits(prev => prev - 1);
@@ -112,93 +86,54 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
   };
 
   const generateVoice = async () => {
-    if (!ai || !prompt) return;
-    if (!isPro && units <= 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
+    if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const fullPrompt = `You are a voice synthesis scientist. Analyze this text for vocal synthesis: "${prompt}". 
-      Format as JSON with: 'cadence', 'pitch', 'timbre', 'emotional_profile', and 'cloning_fidelity'. Return ONLY the JSON.`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: fullPrompt
-      });
-      
-      const data = JSON.parse(response.text.substring(response.text.indexOf('{'), response.text.lastIndexOf('}') + 1));
-      setResult({
-        ...data,
-        type: 'voice',
-        duration: `${Math.floor(prompt.length / 15)}s`
-      });
+      const data = await BrandavoxAI.generateContent(
+        `Analyze text for vocal synthesis: "${prompt}". JSON: cadence, pitch, timbre, emotional_profile, cloning_fidelity.`
+      );
+      setResult({ ...data, type: 'voice', duration: '45s' });
       if (!isPro) setUnits(prev => prev - 1);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setGenerating(false);
   };
 
   const generateVideo = async () => {
-    if (!ai || !prompt) return;
-    if (!isPro && units <= 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
+    if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const fullPrompt = `You are a neural video engineer. Create a forge strategy for: "${prompt}". 
-      Format as JSON with: 'frame_rate', 'dynamics', 'motion_blur', and 'render_pass_description'. Return ONLY the JSON.`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: fullPrompt
-      });
-      
-      const data = JSON.parse(response.text.substring(response.text.indexOf('{'), response.text.lastIndexOf('}') + 1));
-      setResult({
-        ...data,
-        type: 'video',
-        url: `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/450`
-      });
+      const data = await BrandavoxAI.generateContent(
+        `Forge strategy for: "${prompt}". JSON: frame_rate, dynamics, motion_blur, render_pass_description.`
+      );
+      setResult({ ...data, type: 'video', url: `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/450` });
       if (!isPro) setUnits(prev => prev - 1);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setGenerating(false);
   };
 
   const generateIdentity = async () => {
-    if (!ai || !prompt) return;
-    if (!isPro && units <= 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
+    if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const fullPrompt = `You are a world-class brand strategist. Create an identity matrix for: "${prompt}". 
-      Format as JSON with: 'brand_essence', 'color_palette' (array of 3 hex), 'typography', and 'market_positioning'. Return ONLY the JSON.`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: fullPrompt
-      });
-      
-      const data = JSON.parse(response.text.substring(response.text.indexOf('{'), response.text.lastIndexOf('}') + 1));
-      setResult({
-        ...data,
-        type: 'identity'
-      });
+      const data = await BrandavoxAI.generateContent(
+        `Identity matrix for: "${prompt}". JSON: brand_essence, color_palette (3 hex), typography, market_positioning.`
+      );
+      setResult({ ...data, type: 'identity' });
       if (!isPro) setUnits(prev => prev - 1);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setGenerating(false);
   };
 
   return (
     <div className="space-y-8">
+      {/* Smart Upgrade Modal Hook */}
+      {showUpgradeModal && (
+        <SmartUpgradeModal 
+          usageAnalysis={`You have processed ${prompt.length} bytes of strategic intent. DeepSeek patterns suggest a transition to Pro Studio for maximum E2E security.`}
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => { setIsPro(true); setShowUpgradeModal(false); }}
+        />
+      )}
       {/* Usage Monitor */}
       {!isPro && (
         <div className="nm-flat p-6 rounded-3xl bg-orange-50 dark:bg-orange-950/20 flex flex-col md:flex-row justify-between items-center gap-4 border border-orange-500/20">
@@ -546,7 +481,7 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
              </div>
              <div className="space-y-4">
                 <h2 className="text-4xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">Usage <span className="text-orange-600">Limit</span> Reached</h2>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">You've reached the free tier limit for StratOS Neural Synthesis. Upgrade to Pro Studio to unlock unlimited 8K generation, voice cloning, and direct exports.</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">You've reached the free tier limit for Brandavox Neural Synthesis. Upgrade to Pro Studio to unlock unlimited 8K generation, voice cloning, and direct exports.</p>
              </div>
              
              <div className="grid grid-cols-1 gap-4 pt-4">

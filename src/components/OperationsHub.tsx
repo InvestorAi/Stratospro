@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BrandLogo from "./BrandLogo";
 import { 
   FileText, 
   Download, 
@@ -21,7 +22,7 @@ export default function OperationsHub() {
   const [activeDoc, setActiveDoc] = useState('invoices');
 
   const docs = [
-    { id: '901', client: 'Lumina Digital', type: 'Invoice', amount: '$4,200.00', status: 'paid', date: 'May 04, 2026' },
+    { id: '901', client: 'Brandavox AI', type: 'Invoice', amount: '$4,200.00', status: 'paid', date: 'May 04, 2026' },
     { id: '902', client: 'EcoVibe Marketing', type: 'Receipt', amount: '$1,500.00', status: 'confirmed', date: 'May 03, 2026' },
     { id: '903', client: 'AeroJets Travel', type: 'Invoice', amount: '$12,800.00', status: 'pending', date: 'May 05, 2026' },
   ];
@@ -101,8 +102,8 @@ export default function OperationsHub() {
              <div className="space-y-12">
                 <div className="flex justify-between items-start">
                    <div className="space-y-2">
-                      <div className="w-20 h-20 nm-inset rounded-[2rem] flex items-center justify-center text-3xl font-black text-orange-600">S</div>
-                      <h4 className="text-xl font-black uppercase tracking-tighter">StratOS Strategic Hub</h4>
+                      <BrandLogo size="lg" className="w-20 h-20 rounded-[2.5rem]" />
+                      <h4 className="text-xl font-black uppercase tracking-tighter">Brandavox Strategic Hub</h4>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Operations Division • Site B-14</p>
                    </div>
                    <div className="text-right">
@@ -169,7 +170,7 @@ export default function OperationsHub() {
                  </div>
               </div>
               <p className="text-[11px] font-medium text-slate-400 leading-relaxed italic mb-8">
-                 "3 invoices are reaching net-30 terms. AI Autoresponder has initiated automated 'Soft Follow-up' sequences for Lumina & Vibe."
+                 "3 invoices are reaching net-30 terms. AI Autoresponder has initiated automated 'Soft Follow-up' sequences for Brandavox Partners."
               </p>
               <button className="w-full py-4 bg-orange-600 rounded-2xl font-black text-xs uppercase text-white shadow-lg shadow-orange-600/20 hover:scale-105 transition-all">Review Escalations</button>
            </div>

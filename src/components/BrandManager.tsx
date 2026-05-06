@@ -13,7 +13,7 @@ interface Brand {
 
 export default function BrandManager() {
   const [brands, setBrands] = useState<Brand[]>([
-    { id: '1', name: 'Lumina Digital', niche: 'Fintech', status: 'active', reach: '500K+', audience: 'Gens Z Engineers' },
+    { id: '1', name: 'Brandavox AI', niche: 'AI Tech', status: 'active', reach: '500K+', audience: 'Global Engineers' },
     { id: '2', name: 'EcoVibe', niche: 'Skincare', status: 'active', reach: '120K+', audience: 'Organic Lifers' },
     { id: '3', name: 'AeroJets', niche: 'Travel', status: 'onboarding', reach: '0', audience: 'Luxury Travelers' },
   ]);
@@ -154,7 +154,7 @@ export default function BrandManager() {
             </div>
             <h2 className="text-4xl font-black tracking-tight uppercase text-slate-950 dark:text-white leading-none">Legal & Financial Backbone</h2>
             <p className="text-lg text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-              Managing 500+ accounts requires multi-continental compliance. StratOS automates brand identity design protection, legal documentation, and cross-border invoicing through unified Nerve nodes.
+              Managing 500+ accounts requires multi-continental compliance. Brandavox AI automates brand identity design protection, legal documentation, and cross-border invoicing through unified intelligence nodes.
             </p>
             <div className="flex gap-6 pt-4">
                <div className="flex items-center gap-2 font-bold text-slate-500">

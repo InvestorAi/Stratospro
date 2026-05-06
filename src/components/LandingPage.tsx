@@ -16,6 +16,7 @@ import {
   Moon
 } from "lucide-react";
 import { motion } from "motion/react";
+import BrandLogo from "./BrandLogo";
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -28,37 +29,37 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
   const navigateToDashboard = onLogin;
   const features = [
     {
-      title: "8K Vision Engine",
+      title: "8k vision engine",
       icon: BrainCircuit,
       desc: "Generate hyper-realistic 8K visuals with our proprietary neural engine. Text-to-masterpiece in seconds.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "AI Voice & Audio",
+      title: "Ai voice 8 audio",
       icon: MessageSquare,
       desc: "Synthetic vocal cloning and high-fidelity narration for brand identity. Cinematic audio from a prompt.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Photoshop Pro Studio",
+      title: "photoshop pro studio",
       icon: PenTool,
       desc: "Advanced neural editing tools with non-destructive layers, smart filters, and vector precision.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Strategy Engine",
+      title: "strategy engine",
       icon: Calendar,
       desc: "Coordinate global campaigns with a predictive calendar that optimizes for every timezone.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Brand Empire Hub",
+      title: "Brand empire",
       icon: Globe,
       desc: "One-click deployment for stunning portfolios and multi-brand asset management.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Designer Multi-Chat",
+      title: "designer multi-chat",
       icon: MessageSquare,
       desc: "Secure team threads with bridge integration directly into the creative studio workspace.",
       color: "text-orange-600 dark:text-orange-400"
@@ -129,10 +130,8 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-12">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center shadow-lg">
-                 <span className="text-white font-bold text-xl font-mono">Σ</span>
-              </div>
-              <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white">StratOS</span>
+              <BrandLogo size="md" />
+              <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase">Brandavox AI</span>
             </div>
             
             <div className="hidden md:flex items-center gap-8">
@@ -198,12 +197,12 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] max-w-5xl mx-auto text-slate-950 dark:text-white">
-            The <span className="text-orange-600">Nervous System</span> For Your Digital Empire.
+            The <span className="text-orange-600">Cognitive Core</span> For Your Brand Empire.
           </h1>
           
           <p className="text-lg md:text-xl text-slate-600 dark:text-stone-400 max-w-2xl mx-auto font-medium leading-relaxed">
-            StratOS is the professional-grade creative operating system for modern builders. 
-            Unified AI, strategic planning, and performance analytics—all in one minimalist terminal.
+            Brandavox AI is the professional-grade creative operating system for modern brands. 
+            Unified intelligence, strategic foresight, and high-fidelity output—all in one minimalist interface.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
@@ -211,8 +210,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
               onClick={onLogin}
               className="group nm-button bg-orange-600 text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-[0_20px_40px_-10px_rgba(234,88,12,0.3)]"
             >
-              Initialize Dashboard
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+              Initialize Brandavox <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
             </button>
             <button 
               onClick={onLogin}
@@ -316,7 +314,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
                 <div className={`w-14 h-14 rounded-2xl nm-inset flex items-center justify-center mb-8 border border-white dark:border-white/5 transition-transform group-hover:scale-110 group-hover:rotate-3`}>
                   <Icon className={`w-7 h-7 ${feature.color}`} />
                 </div>
-                <h4 className="text-2xl font-black mb-4 tracking-tight text-slate-900 dark:text-white uppercase">{feature.title}</h4>
+                <h4 className="text-2xl font-black mb-4 tracking-tight text-orange-600 dark:text-white">{feature.title}</h4>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                   {feature.desc}
                 </p>
@@ -398,7 +396,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-200 font-medium">
               From solo entrepreneurs launching their first dream to global agencies managing 500+ accounts. 
-              StratOS scales with you, providing the same high-fidelity performance whether you're scheduling one tweet or orchestrating a global rebranding.
+              Brandavox AI scales with you, providing the same high-fidelity performance whether you're scheduling one tweet or orchestrating a global rebranding.
             </p>
             <ul className="space-y-4">
               {[
@@ -430,12 +428,12 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
           <h2 className="text-xs font-black text-orange-600 uppercase tracking-[0.3em]">The Verdict</h2>
           <h3 className="text-5xl font-bold tracking-tighter text-orange-600 dark:text-orange-400">The Foundation for every <span className="italic">Creative Weather</span>.</h3>
           <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-medium font-sans">
-             Whether the market is booming or the algorithm is shifting, StratOS keeps you cushioned with adaptive intelligence.
+             Whether the market is booming or the algorithm is shifting, Brandavox AI keeps you cushioned with adaptive intelligence.
           </p>
         </div>
 
         <div className="nm-inset p-12 rounded-[4rem] text-slate-900 dark:text-white space-y-8">
-           <h4 className="text-3xl font-black italic">"StratOS changed how my brain processes digital strategy. I don't use 10 apps anymore. I just use the OS."</h4>
+           <h4 className="text-3xl font-black italic">"Brandavox AI changed how my brain processes digital strategy. I don't use 10 apps anymore. I just use the platform."</h4>
            <div className="flex flex-col items-center gap-2">
               <div className="w-16 h-16 rounded-full border-4 border-white dark:border-white/30 overflow-hidden">
                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="user" />
@@ -464,7 +462,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
           >
             <div className="absolute inset-0 bg-slate-950 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
             <span className="relative z-10 text-slate-950 group-hover:text-white font-black text-2xl tracking-tight flex items-center justify-center gap-4 transition-colors">
-              Initialize StratOS <ArrowRight className="w-8 h-8" />
+              Initialize Brandavox <ArrowRight className="w-8 h-8" />
             </span>
           </button>
 

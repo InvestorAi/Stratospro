@@ -35,10 +35,16 @@ interface DashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
+import { EncryptionService } from "../lib/security/encryption";
+
+const ROOM_KEY = "NEXURA_GLOBAL_NERVE_SECURE";
+
 export default function Dashboard({ user, onNavigate }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!user) return;
+
     const q = query(
       collection(db, "chats", "global-nerve", "messages"),
       orderBy("timestamp", "desc"),
@@ -46,15 +52,23 @@ export default function Dashboard({ user, onNavigate }: DashboardProps) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const activities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const activities = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const text = data.isEncrypted 
+          ? EncryptionService.decrypt(data.cipherText || "", ROOM_KEY)
+          : data.text;
+          
+        return {
+          id: doc.id,
+          ...data,
+          text: text ? (text.length > 40 ? text.substring(0, 40) + '...' : text) : '[[ENCRYPTED]]'
+        };
+      });
       setRecentActivity(activities);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handleAutoInvoice = () => {
     generateInvoice({

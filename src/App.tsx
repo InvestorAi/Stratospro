@@ -28,12 +28,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserProfile } from "./types";
+import BrandLogo from "./components/BrandLogo";
 
 // Components
 import Dashboard from "./components/Dashboard";
 import ContentPlanner from "./components/ContentPlanner";
 import AICreativeStudio from "./components/AICreativeStudio";
-import ChatRoom from "./components/ChatRoom";
+import SecureChatRoom from "./components/SecureChatRoom";
 import ProfessionalEditor from "./components/ProfessionalEditor";
 import PortfolioBuilder from "./components/PortfolioBuilder";
 import BrandManager from "./components/BrandManager";
@@ -179,10 +180,8 @@ export default function App() {
         isSidebarOpen ? "translate-x-0" : "-translate-x-[110%] lg:translate-x-0"
       )}>
         <div className="px-6 mb-12 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-orange-600 dark:bg-orange-500 flex items-center justify-center shadow-lg">
-            <span className="text-white font-black text-2xl">Σ</span>
-          </div>
-          <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase transition-colors">StratOS</span>
+          <BrandLogo size="lg" />
+          <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase transition-colors">Brandavox AI</span>
         </div>
 
         <nav className="flex-1 w-full px-4 space-y-3 overflow-y-auto">
@@ -244,7 +243,7 @@ export default function App() {
               <h2 className="text-xl lg:text-3xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">
                 {menuItems.find(m => m.id === activeTab)?.label}
               </h2>
-              <p className="text-[10px] lg:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-[0.2em] font-black italic">StratOS • Nerve System</p>
+              <p className="text-[10px] lg:text-xs text-slate-500 dark:text-slate-500 uppercase tracking-[0.2em] font-black italic">Brandavox AI • Intelligence Hub</p>
             </div>
           </div>
 
@@ -306,7 +305,7 @@ export default function App() {
               />
             )}
             {activeTab === "editor" && <ProfessionalEditor onNavigate={handleNavigate} />}
-            {activeTab === "chat" && <ChatRoom user={profile} />}
+            {activeTab === "chat" && <SecureChatRoom user={profile} />}
             {activeTab === "operations" && <OperationsHub />}
             {activeTab === "portfolio" && <PortfolioBuilder />}
             {activeTab === "analytics" && <AnalyticsHub />}
@@ -364,10 +363,8 @@ export default function App() {
 
           <div className="nm-inset p-8 rounded-[2.5rem] w-full max-w-4xl mx-auto text-center space-y-6">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-orange-600 dark:bg-orange-500 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">Σ</span>
-              </div>
-              <span className="text-lg font-black tracking-tighter text-slate-950 dark:text-white">StratOS Creative Studio</span>
+              <BrandLogo size="md" />
+              <span className="text-lg font-black tracking-tighter text-slate-950 dark:text-white uppercase">Brandavox AI Studio</span>
             </div>
             <p className="font-medium text-slate-600 dark:text-slate-400 max-w-2xl mx-auto italic">
               "Empowering the next generation of digital masters with unified creative intelligence and professional-grade operational tools."
@@ -378,7 +375,7 @@ export default function App() {
               <a href="#" className="text-xs font-bold text-slate-400 hover:text-slate-900 underline uppercase tracking-widest transition-colors">Support Center</a>
               <a href="#" className="text-xs font-bold text-slate-400 hover:text-slate-900 underline uppercase tracking-widest transition-colors">Developer API</a>
             </div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300 font-mono pt-6">© 2026 StratOS Software Group. All rights reserved.</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-300 font-mono pt-6">© 2026 Brandavox AI. All rights reserved.</p>
           </div>
         </footer>
       </main>

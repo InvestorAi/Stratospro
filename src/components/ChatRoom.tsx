@@ -98,7 +98,7 @@ export default function ChatRoom({ user }: { user: any }) {
         
         <div className="flex-1 overflow-y-auto px-4 space-y-2">
           {[
-            { name: "Lumina Digital (CEO)", last: "Ready for the 8K assets?", time: "2m", active: true },
+            { name: "Brandavox AI (CEO)", last: "Ready for the 8K assets?", time: "2m", active: true },
             { name: "EcoVibe Marketing", last: "Invoice #902 paid.", time: "1h", active: false },
             { name: "Global Operations", last: "New onboarding request.", time: "3h", active: false },
           ].map((contact, i) => (
@@ -125,7 +125,7 @@ export default function ChatRoom({ user }: { user: any }) {
            <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full nm-button flex items-center justify-center text-orange-600 font-black">L</div>
               <div>
-                <p className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tight">Lumina Digital CEO</p>
+                <p className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tight">Brandavox AI CEO</p>
                 <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Active Now • Global Hub</p>
               </div>
            </div>

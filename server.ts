@@ -1,62 +1,95 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
+import helmet from "helmet";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
+import OpenAI from "openai";
+import dotenv from "dotenv";
+import { createServer as createViteServer } from "vite";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const app = express();
+const PORT = 3000;
+
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for Vite dev mode
+}));
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : '*',
+  methods: ['GET', 'POST'],
+}));
+app.use(express.json());
+
+// Rate Limiting
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute for free users (simplified)
+  message: { error: "Neural Engine Rate Limit Exceeded. Upgrade to Pro for 300/min." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// DeepSeek Client (initialized lazily)
+let deepseekClient: OpenAI | null = null;
+const getDeepSeek = () => {
+  if (!deepseekClient) {
+    const apiKey = process.env.DEEPSEEK_API_KEY || "sk-dummy"; // Allow boot, fail on use
+    deepseekClient = new OpenAI({
+      apiKey,
+      baseURL: "https://api.deepseek.com",
+    });
+  }
+  return deepseekClient;
+};
+
+// --- API ROUTES ---
+
+app.post("/api/proxy/deepseek", aiLimiter, async (req, res) => {
+  try {
+    const { model, messages } = req.body;
+    const client = getDeepSeek();
+
+    // DeepSeek API specific: Reasoner requires different handling if used,
+    // but standard chat works with chat.completions.
+    const response = await client.chat.completions.create({
+      model: model || "deepseek-chat",
+      messages,
+      response_format: { type: "json_object" },
+      max_tokens: 2048,
+    });
+
+    res.json(response.choices[0].message);
+  } catch (error: any) {
+    console.error("DeepSeek Proxy Error:", error);
+    res.status(500).json({ error: error.message || "Neural Engine Failure" });
+  }
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "online", 
+    service: "BRANDAVOX-CORE", 
+    engines: ["DeepSeek-V3", "DeepSeek-VL"],
+    security: "Helmet+CORS+E2E",
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// --- VITE MIDDLEWARE ---
+
 async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json());
-
-  // API Routes
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
-
-  // Mock Invoice Generation Endpoint
-  app.post("/api/invoices", (req, res) => {
-    const { clientEmail, amount, services } = req.body;
-    // In a real app, this would generate a PDF on server or store in DB
-    console.log(`Generating invoice for ${clientEmail}: ${amount}`);
-    res.json({ success: true, invoiceId: Date.now().toString() });
-  });
-
-  // Vite middleware for development
-  const isProduction = process.env.NODE_ENV === "production";
-
-  if (!isProduction) {
-    console.log("Starting Vite in middleware mode...");
-    try {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-      console.log("Vite middleware attached.");
-
-      // SPA fallback for dev
-      app.get("*", async (req, res, next) => {
-        const url = req.originalUrl;
-        try {
-          // 1. Read index.html
-          let template = await fs.promises.readFile(path.resolve(__dirname, "index.html"), "utf-8");
-          // 2. Apply Vite HTML transforms
-          template = await vite.transformIndexHtml(url, template);
-          // 3. Send back the rendered HTML
-          res.status(200).set({ "Content-Type": "text/html" }).end(template);
-        } catch (e) {
-          vite.ssrFixStacktrace(e as Error);
-          next(e);
-        }
-      });
-    } catch (e) {
-      console.error("Failed to start Vite server:", e);
-    }
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
@@ -66,7 +99,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`\x1b[35m[BRANDAVOX AI]\x1b[0m Server running on http://localhost:${PORT}`);
   });
 }
 

@@ -1,6 +1,6 @@
 {
-  "name": "Lumina Creative OS",
-  "description": "Comprehensive social media management, AI studio, and portfolio builder with real-time chat and advanced editing tools.",
+  "name": "Brandavox AI",
+  "description": "Brandavox AI - Enterprise-grade Creative Intelligence Platform powered by DeepSeek.",
   "requestFramePermissions": [
     "camera",
     "microphone"
