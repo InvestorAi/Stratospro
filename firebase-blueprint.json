@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "admin", "client"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Post": {
+      "title": "Social Media Post",
+      "description": "Scheduled or published social media content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "platform": { "type": "string", "enum": ["twitter", "linkedin", "facebook", "instagram"] },
+        "status": { "type": "string", "enum": ["draft", "scheduled", "published"] },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "content", "platform", "status"]
+    },
+    "Chat": {
+      "title": "Chat Session",
+      "description": "Direct message or group conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participants"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "Individual message in a chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "image", "file"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "text", "type"]
+    },
+    "Portfolio": {
+      "title": "User Portfolio",
+      "description": "Business portfolio or landing page configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "slug": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "theme": { "type": "string" },
+        "sections": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "slug", "title"]
+    },
+    "AI_Creation": {
+      "title": "AI Content Creation",
+      "description": "Generated images, videos, or voices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["image", "video", "voice"] },
+        "prompt": { "type": "string" },
+        "url": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "prompt", "url"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Global collection of posts"
+    },
+    "/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Global conversation threads"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a specific chat"
+    },
+    "/portfolios/{portfolioId}": {
+      "schema": "Portfolio",
+      "description": "User portfolios and landing pages"
+    },
+    "/ai_creations/{creationId}": {
+      "schema": "AI_Creation",
+      "description": "Records of AI-generated content"
+    }
+  }
+}

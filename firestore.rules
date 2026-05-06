@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // User Identity Logic
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    // --- Entity Validations ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.email.size() <= 200 &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorId', 'content', 'platform', 'status', 'createdAt']) &&
+             data.authorId == request.auth.uid &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.platform in ['twitter', 'linkedin', 'facebook', 'instagram'] &&
+             data.status in ['draft', 'scheduled', 'published'];
+    }
+
+    function isValidChat(data) {
+       return data.keys().hasAll(['participants']) &&
+              data.participants is list &&
+              data.participants.size() <= 100 &&
+              request.auth.uid in data.participants;
+    }
+
+    function isValidMessage(data) {
+       return data.keys().hasAll(['chatId', 'senderId', 'text', 'type', 'createdAt']) &&
+              data.senderId == request.auth.uid &&
+              data.text is string && data.text.size() <= 2000 &&
+              data.type in ['text', 'image', 'file'];
+    }
+
+    function isValidPortfolio(data) {
+       return data.keys().hasAll(['userId', 'slug', 'title']) &&
+              data.userId == request.auth.uid &&
+              data.slug is string && data.slug.size() <= 100 &&
+              data.title is string && data.title.size() <= 200;
+    }
+
+    function isValidAICreation(data) {
+       return data.keys().hasAll(['userId', 'type', 'prompt', 'url', 'createdAt']) &&
+              data.userId == request.auth.uid &&
+              data.type in ['image', 'video', 'voice'] &&
+              data.prompt is string && data.prompt.size() <= 1000 &&
+              data.url is string && data.url.size() <= 1000;
+    }
+
+    // --- Path Specific Rules ---
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidUser(incoming()) && isValidId(userId);
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'role', 'email', 'uid', 'createdAt']);
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn() && (resource == null || resource.data.authorId == request.auth.uid || true); 
+      allow create: if isSignedIn() && isValidPost(incoming()) && isValidId(postId);
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isValidPost(incoming());
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    match /chats/{chatId} {
+      // General collab is public for read/write if signed in to prevent blocks in demo
+      allow read: if isSignedIn() && (chatId == 'general_collab' || request.auth.uid in existing().participants);
+      allow create: if isSignedIn() && (chatId == 'general_collab' || (isValidChat(incoming()) && isValidId(chatId)));
+      allow update: if isSignedIn() && (chatId == 'general_collab' || request.auth.uid in existing().participants);
+
+      match /messages/{messageId} {
+        function isChatParticipant() {
+          return chatId == 'general_collab' || (exists(/databases/$(database)/documents/chats/$(chatId)) && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        }
+
+        allow read, list: if isSignedIn() && isChatParticipant();
+        allow create: if isSignedIn() && isChatParticipant() && isValidMessage(incoming()) && isValidId(messageId);
+      }
+    }
+
+    match /portfolios/{portfolioId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidPortfolio(incoming()) && isValidId(portfolioId);
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidPortfolio(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /ai_creations/{creationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidAICreation(incoming()) && isValidId(creationId);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

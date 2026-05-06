@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;600;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Neumorphism Colors */
+  --color-nm-bg: #f8fafc;
+  --color-nm-dark: #e2e8f0;
+  --color-nm-light: #ffffff;
+  
+  /* Dark Mode Neumorphism (Elegant Dark Theme) */
+  --color-nm-bg-dark: #0f172a;
+  --color-nm-shadow-dark-1: #020617;
+  --color-nm-shadow-dark-2: #1e293b;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+  }
+  
+  body.dark {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer components {
+  .nm-flat {
+    @apply rounded-3xl bg-slate-50 shadow-[6px_6px_12px_#e2e8f0,-6px,-6px,12px_#ffffff] transition-all duration-300;
+  }
+  
+  .dark .nm-flat {
+    @apply bg-slate-900 shadow-[10px_10px_20px_#020617,-10px_-10px_20px_#1e293b] transition-all duration-300;
+  }
+  
+  .nm-inset {
+    @apply rounded-3xl bg-slate-50 shadow-[inset_6px_6px_12px_#e2e8f0,inset_-6px_-6px_12px_#ffffff] transition-all duration-300;
+  }
+  
+  .dark .nm-inset {
+    @apply bg-slate-950 shadow-[inset_10px_10px_20px_#020617,inset_-10px_-10px_20px_#1e293b] transition-all duration-300;
+  }
+  
+  .nm-button {
+    @apply rounded-2xl bg-slate-50 text-slate-950 shadow-[4px_4px_8px_#e2e8f0,-4px,-4px,8px_#ffffff] transition-all hover:shadow-[2px_2px_4px_#e2e8f0,-2px,-2px,4px_#ffffff] active:scale-[0.98];
+  }
+  
+  .dark .nm-button {
+    @apply bg-slate-800 text-white shadow-[6px_6px_12px_#020617,-6px,-6px_12px_#1e293b] hover:shadow-[2px_2px_4px_#020617,-2px,-2px,4px_#1e293b] active:scale-[0.98];
+  }
+}
