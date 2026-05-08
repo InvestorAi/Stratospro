@@ -13,7 +13,14 @@ import {
   Layers,
   Rocket,
   Sun,
-  Moon
+  Moon,
+  Palette,
+  Wand2,
+  Mic2,
+  Video,
+  Layout,
+  Scissors,
+  FileText
 } from "lucide-react";
 import { motion } from "motion/react";
 import BrandLogo from "./BrandLogo";
@@ -26,42 +33,60 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMode }: LandingPageProps) {
-  const navigateToDashboard = onLogin;
+  const navigateToDashboard = onEnterDemo || onLogin;
   const features = [
     {
-      title: "8k vision engine",
-      icon: BrainCircuit,
-      desc: "Generate hyper-realistic 8K visuals with our proprietary neural engine. Text-to-masterpiece in seconds.",
+      title: "Image Generation",
+      icon: Wand2,
+      desc: "Synthesize hyper-realistic 8K visuals and blueprints with neural upscaling. Professional-grade high-fidelity output.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Ai voice 8 audio",
-      icon: MessageSquare,
-      desc: "Synthetic vocal cloning and high-fidelity narration for brand identity. Cinematic audio from a prompt.",
+      title: "Voice Generation",
+      icon: Mic2,
+      desc: "Hyper-realistic vocal synthesis with traditional African, US, and UK accents. Low-latency cloning and master-quality exports.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "photoshop pro studio",
+      title: "Video Generation",
+      icon: Video,
+      desc: "Transform static concepts into cinematic video sequences. Neural interpolation for fluid, lifelike motion.",
+      color: "text-orange-600 dark:text-orange-400"
+    },
+    {
+      title: "Design Studio",
+      icon: Layout,
+      desc: "Real-time design suite for thumbnails, flyers, and mockups. Professional exports in PSD and Canva formats.",
+      color: "text-blue-600 dark:text-blue-400"
+    },
+    {
+      title: "Neural Video Utils",
+      icon: Scissors,
+      desc: "AI-powered video tools: Reels cutter, summarizer, and neural audio/text extraction for viral growth.",
+      color: "text-emerald-600 dark:text-emerald-400"
+    },
+    {
+      title: "Neural Prompts",
+      icon: FileText,
+      desc: "Master-level prompt engineering for midjourney, stable diffusion, and video scripts via neural synthesis.",
+      color: "text-amber-600 dark:text-amber-400"
+    },
+    {
+      title: "Brand Identity",
+      icon: Palette,
+      desc: "Generate complete brand matrices with strategic archetypes, neural color variations, and market positioning.",
+      color: "text-orange-600 dark:text-orange-400"
+    },
+    {
+      title: "Photo Editor",
       icon: PenTool,
-      desc: "Advanced neural editing tools with non-destructive layers, smart filters, and vector precision.",
+      desc: "Advanced neural photo manipulation and retouching. Studio-quality edits in seconds.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "strategy engine",
-      icon: Calendar,
-      desc: "Coordinate global campaigns with a predictive calendar that optimizes for every timezone.",
-      color: "text-orange-600 dark:text-orange-400"
-    },
-    {
-      title: "Brand empire",
-      icon: Globe,
-      desc: "One-click deployment for stunning portfolios and multi-brand asset management.",
-      color: "text-orange-600 dark:text-orange-400"
-    },
-    {
-      title: "designer multi-chat",
-      icon: MessageSquare,
-      desc: "Secure team threads with bridge integration directly into the creative studio workspace.",
+      title: "Analytics Hub",
+      icon: BarChart3,
+      desc: "Predictive campaign planning with neural sentiment analysis and cross-platform optimization.",
       color: "text-orange-600 dark:text-orange-400"
     }
   ];
@@ -134,24 +159,55 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
               <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase">Brandavox AI</span>
             </div>
             
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
               <button 
-                onClick={onLogin}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-2"
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                className="hover:text-orange-600 transition-colors scroll-mt-24"
               >
-                <BrainCircuit className="w-4 h-4" /> 8K Vision
+                Features
               </button>
               <button 
-                onClick={onLogin}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-2"
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                className="hover:text-orange-600 transition-colors scroll-mt-24"
               >
-                <MessageSquare className="w-4 h-4" /> Voice Lab
+                Pricing
+              </button>
+              <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/10 mx-2" />
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Wand2 className="w-4 h-4" /> Image Generation
               </button>
               <button 
-                onClick={onLogin}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-2"
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <PenTool className="w-4 h-4" /> Pro Editor
+                <Mic2 className="w-4 h-4" /> Voice Generation
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Palette className="w-4 h-4" /> Brand Identity
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Layout className="w-4 h-4" /> Design Studio
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Video className="w-4 h-4" /> Video Generation
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <BarChart3 className="w-4 h-4" /> Analytics Hub
               </button>
             </div>
           </div>
@@ -205,20 +261,20 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
             Unified intelligence, strategic foresight, and high-fidelity output—all in one minimalist interface.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <button 
-              onClick={onLogin}
-              className="group nm-button bg-orange-600 text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-[0_20px_40px_-10px_rgba(234,88,12,0.3)]"
-            >
-              Initialize Brandavox <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </button>
-            <button 
-              onClick={onLogin}
-              className="nm-button bg-white dark:bg-slate-900 text-slate-950 dark:text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-white/5"
-            >
-              Access Engine
-            </button>
-          </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+              <button 
+                onClick={onLogin}
+                className="group nm-button bg-orange-600 text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-[0_20px_40px_-10px_rgba(234,88,12,0.3)]"
+              >
+                Sign In With Google <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+              </button>
+              <button 
+                onClick={onEnterDemo}
+                className="nm-button bg-white dark:bg-slate-900 text-slate-950 dark:text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-white/5"
+              >
+                Enter Demo Engine
+              </button>
+            </div>
           
           <div className="flex flex-col items-center gap-6 pt-12">
             <div className="flex -space-x-4">
@@ -278,7 +334,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
       </section>
 
       {/* The Pillars */}
-      <section className="py-20 px-6 max-w-7xl mx-auto">
+      <section id="features" className="py-20 px-6 max-w-7xl mx-auto scroll-mt-24">
         <div className="text-center mb-20 space-y-4">
           <h2 className="text-xs font-black text-orange-600 uppercase tracking-[0.3em]">The Toolkit</h2>
           <h3 className="text-4xl md:text-5xl font-bold tracking-tight text-orange-600 dark:text-orange-400">Everything, but <span className="italic">Elevated</span>.</h3>
@@ -325,7 +381,7 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
       </section>
 
       {/* Pricing Section */}
-      <section className="py-32 px-6 bg-slate-50 dark:bg-stone-900/5 transition-colors">
+      <section id="pricing" className="py-32 px-6 bg-slate-50 dark:bg-stone-900/5 transition-colors scroll-mt-24">
         <div className="max-w-7xl mx-auto space-y-20">
           <div className="text-center space-y-4">
              <h2 className="text-xs font-black text-orange-600 uppercase tracking-[0.4em]">Investment Tiers</h2>
@@ -450,46 +506,50 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
       <footer className="pt-20 pb-40 px-6 border-t border-slate-100 dark:border-white/5 relative bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto text-center space-y-20">
           <div className="space-y-4">
-            <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-slate-950 dark:text-white">Join the <span className="italic">Elite</span>.</h2>
+            <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-slate-950 dark:text-white">Global Voice <span className="italic">Accents</span>.</h2>
             <p className="text-xl text-slate-400 dark:text-slate-400 font-medium italic">
-              "The only limit is your prompt fidelity."
+              "Traditional African accents, US, UK, and more. Realistic neural synthesis at your fingertips."
             </p>
           </div>
 
           <button 
-            onClick={navigateToDashboard}
+            onClick={onEnterDemo}
             className="nm-button px-20 py-8 rounded-[3rem] bg-white group relative overflow-hidden mx-auto block"
           >
             <div className="absolute inset-0 bg-slate-950 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
             <span className="relative z-10 text-slate-950 group-hover:text-white font-black text-2xl tracking-tight flex items-center justify-center gap-4 transition-colors">
-              Initialize Brandavox <ArrowRight className="w-8 h-8" />
+              Enter Dashboard <ArrowRight className="w-8 h-8" />
             </span>
           </button>
 
           {/* Tools Grid Directory */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-5xl mx-auto pt-20 border-t border-slate-100 dark:border-white/5 text-center justify-items-center">
-             <div className="space-y-6 flex flex-col items-center">
-                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Core Services</h5>
+              <div className="space-y-6 flex flex-col items-center">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">AI Intelligence</h5>
                 <ul className="space-y-4 flex flex-col items-center">
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">8K Vision Engine</button></li>
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Voice Synthesis</button></li>
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Forge Video</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Image Generation</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Voice Generation</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Video Generation</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Design Studio</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Neural Utils</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Brand Identity</button></li>
                 </ul>
              </div>
-             <div className="space-y-6 flex flex-col items-center">
-                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Creative OS Tools</h5>
+              <div className="space-y-6 flex flex-col items-center">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Creative Studio</h5>
                 <ul className="space-y-4 flex flex-col items-center">
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Photoshop Pro</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Photo Editor</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Designer Chat</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Content Planner</button></li>
+                </ul>
+             </div>
+              <div className="space-y-6 flex flex-col items-center">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Management</h5>
+                <ul className="space-y-4 flex flex-col items-center">
                    <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Brand Manager</button></li>
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Asset Portfolio</button></li>
-                </ul>
-             </div>
-             <div className="space-y-6 flex flex-col items-center">
-                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Enterprise</h5>
-                <ul className="space-y-4 flex flex-col items-center">
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Concept Planner</button></li>
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Empire Analytics</button></li>
-                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Team Threads</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">My Portfolio</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Analytics Hub</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Team Space</button></li>
                 </ul>
              </div>
              <div className="space-y-6 flex flex-col items-center">

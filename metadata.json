@@ -1,6 +1,6 @@
 {
   "name": "Brandavox AI",
-  "description": "Brandavox AI - Enterprise-grade Creative Intelligence Platform powered by DeepSeek.",
+  "description": "Brandavox AI - Enterprise-grade Creative Intelligence Platform powered by Neural Intelligence.",
   "requestFramePermissions": [
     "camera",
     "microphone"

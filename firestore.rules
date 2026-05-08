@@ -2,36 +2,109 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default Deny
+    // Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helper: Valid Auth
+    // --- PRIMITIVES ---
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-
-    // Users Collection: RLS (Users only see their own profile)
-    match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['uid', 'email', 'role']);
-      allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'settings']);
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Role checking primitives
+    function getUserRole() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.role : 'client';
     }
-
-    // Global Nerve Chat: E2E Encrypted Sub-resource
-    // Users must be authenticated to participate
-    match /chats/{chatId}/messages/{msgId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
-      allow create: if isSignedIn() 
-        && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.isEncrypted == true;
-      allow delete: if false; // Immutability for security logs
+    function isPrivileged() {
+      return isSignedIn() && (getUserRole() == 'owner' || getUserRole() == 'admin');
     }
     
-    // Invoices and Assets
-    match /assets/{assetId} {
-      allow read, write: if isOwner(resource.data.ownerId || request.resource.data.ownerId);
+    // --- USER PROFILE SECURITY ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == request.auth.uid 
+          && data.email is string && data.email.size() < 100
+          && (data.role == 'owner' || data.role == 'client') // Prevent self-elevation to admin
+          && data.createdAt is string;
+      }
+
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().keys().size() >= 3;
+      allow update: if isOwner(userId) 
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'settings'])
+        && (incoming().displayName is string && incoming().displayName.size() < 50);
+    }
+
+    // --- CHAT SECURITY ---
+    match /chats/{chatId} {
+      function isValidChat(data) {
+        return data.participants is list 
+          && data.participants.size() >= 1
+          && data.participants.size() <= 100
+          && request.auth.uid in data.participants
+          && (data.type == null || data.type in ['direct', 'group']);
+      }
+
+      allow get: if isSignedIn() && (chatId == 'global-nerve' || request.auth.uid in existing().participants);
+      allow create: if isSignedIn() && isValidId(chatId) && isValidChat(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && request.auth.uid in existing().participants 
+        && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'participants'])
+        && (incoming().updatedAt == request.time);
+      
+      match /messages/{msgId} {
+        function isChatParticipant() {
+          return chatId == 'global-nerve' || request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        }
+
+        allow list: if isSignedIn() && isChatParticipant();
+        allow get: if isSignedIn() && isChatParticipant();
+        allow create: if isSignedIn() 
+          && isValidId(msgId)
+          && isChatParticipant()
+          && incoming().senderId == request.auth.uid
+          && incoming().cipherText is string && incoming().cipherText.size() < 10000
+          && incoming().isEncrypted == true
+          && incoming().timestamp == request.time;
+      }
+    }
+
+    // --- ASSETS & PORTFOLIOS ---
+    match /ai_creations/{creationId} {
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.isPublic == true);
+      allow get: if isSignedIn() && (existing().userId == request.auth.uid || existing().isPublic == true);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && incoming().timestamp == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- BRAND STRATEGY SECURITY ---
+    match /brands/{brandId} {
+      function isValidBrand(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.ownerId == request.auth.uid
+          && data.status in ['active', 'archived', 'draft']
+          && (data.niche == null || (data.niche is string && data.niche.size() <= 50))
+          && (data.reach == null || data.reach is int)
+          && (data.audience == null || (data.audience is string && data.audience.size() <= 200));
+      }
+
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && existing().ownerId == request.auth.uid;
+      
+      allow create: if isPrivileged() 
+        && isValidId(brandId) 
+        && isValidBrand(incoming())
+        && incoming().createdAt == request.time;
+
+      allow update: if isPrivileged() 
+        && isValidBrand(incoming())
+        && incoming().ownerId == existing().ownerId // Immutable owner
+        && incoming().createdAt == existing().createdAt; // Immutable creation time
+
+      allow delete: if isPrivileged() && existing().ownerId == request.auth.uid;
     }
   }
 }

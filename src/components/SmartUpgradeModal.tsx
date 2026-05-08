@@ -48,7 +48,7 @@ export default function SmartUpgradeModal({ onClose, onUpgrade, usageAnalysis }:
              </div>
              <div className="p-4 nm-button rounded-2xl flex items-center gap-3">
                 <Zap className="w-5 h-5 text-amber-500" />
-                <span className="text-[10px] font-black uppercase">DeepSeek-V3 Turbo</span>
+                <span className="text-[10px] font-black uppercase">Gemini-2.0 Neural</span>
              </div>
           </div>
 

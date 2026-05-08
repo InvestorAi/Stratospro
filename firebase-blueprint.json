@@ -86,6 +86,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "type", "prompt", "url"]
+    },
+    "Brand": {
+      "title": "Brand Profile",
+      "description": "Strategic brand identification and metrics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "niche": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "archived", "draft"] },
+        "reach": { "type": "integer" },
+        "audience": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerId", "status"]
     }
   },
   "firestore": {
@@ -112,6 +128,10 @@
     "/ai_creations/{creationId}": {
       "schema": "AI_Creation",
       "description": "Records of AI-generated content"
+    },
+    "/brands/{brandId}": {
+      "schema": "Brand",
+      "description": "Enterprise brand profiles and strategic data"
     }
   }
 }

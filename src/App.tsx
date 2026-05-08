@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { auth, db, signInWithPopup, googleProvider, onSnapshot, doc, getDoc, setDoc } from "./lib/firebase";
+import { auth, db, signInWithPopup, googleProvider, onSnapshot, doc, getDoc, setDoc, handleFirestoreError, OperationType } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { 
   LayoutDashboard, 
@@ -24,7 +24,12 @@ import {
   Search,
   FileText,
   Mic2,
-  Video
+  Video,
+  Layout,
+  Scissors,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserProfile } from "./types";
@@ -56,14 +61,23 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       try {
         setUser(u);
         if (u) {
-          const userDoc = await getDoc(doc(db, "users", u.uid));
-          if (userDoc.exists()) {
+          const userDocPath = `users/${u.uid}`;
+          let userDoc;
+          try {
+            userDoc = await getDoc(doc(db, "users", u.uid));
+          } catch (error) {
+            handleFirestoreError(error, OperationType.GET, userDocPath);
+            return;
+          }
+
+          if (userDoc?.exists()) {
             setProfile(userDoc.data() as UserProfile);
           } else {
             const newProfile: UserProfile = {
@@ -74,7 +88,12 @@ export default function App() {
               role: "owner",
               createdAt: new Date().toISOString()
             };
-            await setDoc(doc(db, "users", u.uid), newProfile);
+            try {
+              await setDoc(doc(db, "users", u.uid), newProfile);
+            } catch (error) {
+              handleFirestoreError(error, OperationType.WRITE, userDocPath);
+              return;
+            }
             setProfile(newProfile);
           }
         } else {
@@ -83,7 +102,6 @@ export default function App() {
       } catch (error) {
         console.error("Auth state change error:", error);
       } finally {
-        console.log("Auth loading finished");
         setLoading(false);
       }
     });
@@ -98,7 +116,18 @@ export default function App() {
     }
   }, [darkMode]);
 
-  const handleLogin = () => signInWithPopup(auth, googleProvider).catch(err => console.error("Login Error:", err));
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      if (err.code === 'auth/internal-error') {
+        alert("Authentication failed. This may be due to a network issue or browser blocks. Please try refreshing or check if popups are enabled.");
+      } else {
+        alert(`Login failed: ${err.message}`);
+      }
+    }
+  };
   const handleLogout = () => {
     auth.signOut();
     setIsGuest(false);
@@ -106,6 +135,7 @@ export default function App() {
 
   const handleDemoMode = () => {
     setIsGuest(true);
+    setUser(null);
     setProfile({
       uid: "guest-user",
       email: "guest@example.com",
@@ -141,17 +171,23 @@ export default function App() {
 
   const menuItems = [
     { id: "dashboard", label: "Operations Hub", icon: LayoutDashboard },
-    { id: "ai_studio_image", label: "8K Image Engine", icon: ImageIcon, tool: 'image' },
-    { id: "ai_studio_voice", label: "Neural Voice Lab", icon: Mic2, tool: 'voice' },
-    { id: "ai_studio_video", label: "Video Forge Lab", icon: Video, tool: 'video' },
+    { id: "divider1", label: "AI Intelligence", isDivider: true },
+    { id: "ai_studio_image", label: "Image Generation", icon: ImageIcon, tool: 'image', badge: 'PRO', badgeColor: 'bg-amber-100 text-amber-600' },
+    { id: "ai_studio_voice", label: "Voice Generation", icon: Mic2, tool: 'voice', badge: 'NEW', badgeColor: 'bg-emerald-100 text-emerald-600' },
+    { id: "ai_studio_video", label: "Video Generation", icon: Video, tool: 'video', badge: 'SOON', badgeColor: 'bg-orange-100 text-orange-600' },
+    { id: "ai_studio_graphics", label: "Design Studio", icon: Layout, tool: 'graphics', badge: 'NEW', badgeColor: 'bg-blue-100 text-blue-600' },
+    { id: "ai_studio_video_utils", label: "Neural Utils", icon: Scissors, tool: 'video_utils' },
+    { id: "ai_studio_strategic", label: "Neural Prompts", icon: FileText, tool: 'strategic' },
     { id: "ai_studio_identity", label: "Brand Identity", icon: Sparkles, tool: 'identity' },
-    { id: "editor", label: "Photoshop Pro", icon: PenTool },
+    { id: "divider2", label: "Creative Studio", isDivider: true },
+    { id: "editor", label: "Photo Editor", icon: PenTool },
     { id: "chat", label: "Designer Chat", icon: MessageSquare },
-    { id: "planner", label: "Strategy Planner", icon: Calendar },
-    { id: "agency", label: "Brand Empire", icon: Globe },
-    { id: "portfolio", label: "8K Portfolio", icon: Globe },
-    { id: "analytics", label: "Deep Insights", icon: BarChart3 },
-    { id: "team", label: "Force Multiplier", icon: Users },
+    { id: "planner", label: "Content Planner", icon: Calendar },
+    { id: "divider3", label: "Management", isDivider: true },
+    { id: "agency", label: "Brand Manager", icon: Globe },
+    { id: "portfolio", label: "My Portfolio", icon: Globe },
+    { id: "analytics", label: "Analytics Hub", icon: BarChart3 },
+    { id: "team", label: "Team Space", icon: Users },
   ];
 
   const handleNavigate = (id: string) => {
@@ -174,61 +210,130 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Mobile Backdrop Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className={cn(
-        "fixed lg:relative inset-y-0 left-0 w-72 flex-shrink-0 nm-flat m-4 rounded-[2.5rem] flex flex-col items-center py-10 z-50 transition-transform duration-300 transform lg:translate-x-0 border border-slate-100 dark:border-white/5",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-[110%] lg:translate-x-0"
-      )}>
-        <div className="px-6 mb-12 flex items-center gap-3">
-          <BrandLogo size="lg" />
-          <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase transition-colors">Brandavox AI</span>
+      <motion.aside 
+        animate={{ 
+          width: isSidebarCollapsed ? 96 : 320,
+          x: isSidebarOpen ? 0 : (window.innerWidth < 1024 ? -400 : 0)
+        }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        className={cn(
+          "fixed lg:relative inset-y-0 left-0 flex-shrink-0 nm-flat lg:m-4 rounded-r-[2.5rem] lg:rounded-[2.5rem] flex flex-col items-center py-10 z-50 border border-slate-100 dark:border-white/5 overflow-hidden bg-white dark:bg-slate-900",
+          !isSidebarOpen && "lg:flex"
+        )}
+      >
+        <div className={cn("px-6 mb-12 flex items-center gap-3 w-full justify-center transition-all", isSidebarCollapsed ? "flex-col" : "flex-row")}>
+          <BrandLogo size={isSidebarCollapsed ? "sm" : "lg"} />
+          {!isSidebarCollapsed && (
+            <span className="text-2xl font-black tracking-tighter text-slate-950 dark:text-white uppercase truncate">Brandavox</span>
+          )}
         </div>
 
-        <nav className="flex-1 w-full px-4 space-y-3 overflow-y-auto">
+        {/* Collapse Toggle Button (Desktop Only) */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="hidden lg:flex absolute -right-3 top-24 nm-button p-1.5 rounded-full z-[60] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-orange-600"
+        >
+          {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
+        <nav className="flex-1 w-full px-4 space-y-2 overflow-y-auto custom-scrollbar pt-4 overflow-x-hidden">
+          {/* Project History Button - Highlighted */}
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={cn(
+              "w-full flex items-center justify-between gap-4 py-4 rounded-2xl bg-red-600 text-white shadow-lg shadow-red-600/20 mb-6 group transition-all active:scale-95 overflow-hidden",
+              isSidebarCollapsed ? "px-0 justify-center" : "px-6"
+            )}
+          >
+            <div className="flex items-center gap-3 min-w-max">
+              <div className="p-1.5 bg-white/20 rounded-full shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              {!isSidebarCollapsed && <span className="font-bold text-sm whitespace-nowrap">Project History</span>}
+            </div>
+            {!isSidebarCollapsed && <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-black">0</span>}
+          </button>
+
           {menuItems.map((item) => {
-            const Icon = item.icon;
+            if (item.isDivider) {
+              return !isSidebarCollapsed && (
+                <div key={item.id} className="pt-6 pb-2 px-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                    {item.label}
+                  </p>
+                </div>
+              );
+            }
+
+            const Icon = item.icon!;
             const active = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => {
                   setActiveTab(item.id);
-                  setIsSidebarOpen(false);
+                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-200 group",
+                  "w-full flex items-center justify-between py-3.5 rounded-2xl transition-all duration-200 group cursor-pointer overflow-hidden",
                   active 
-                    ? (item.id === 'dashboard' ? "nm-inset text-orange-600 dark:text-orange-400" : "nm-inset text-orange-600 dark:text-orange-400")
-                    : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                    ? "bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white"
+                    : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400",
+                  isSidebarCollapsed ? "px-0 justify-center" : "px-6"
                 )}
+                title={item.label}
               >
-                <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", active ? "opacity-100" : "opacity-50")} />
-                <span className="font-black text-xs uppercase tracking-widest">{item.label}</span>
+                <div className="flex items-center gap-4 min-w-max">
+                  <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110 shrink-0", active ? "opacity-100" : "opacity-60")} />
+                  {!isSidebarCollapsed && <span className="font-bold text-sm tracking-tight whitespace-nowrap">{item.label}</span>}
+                </div>
+                {item.badge && !isSidebarCollapsed && (
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-lg text-[9px] font-black transition-opacity",
+                    item.badgeColor || "bg-slate-100 text-slate-500"
+                  )}>
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
-        <div className="px-4 w-full mt-auto space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className={cn("px-4 w-full mt-auto space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800", isSidebarCollapsed && "px-2")}>
            <button
              onClick={() => setDarkMode(!darkMode)}
-             className="w-full flex items-center justify-center gap-4 py-4 nm-button rounded-2xl group"
+             className={cn("w-full flex items-center gap-4 py-4 nm-button rounded-2xl group transition-all", isSidebarCollapsed ? "justify-center" : "justify-center")}
            >
              {darkMode ? (
-               <><Sun className="w-5 h-5 text-amber-500" /><span className="text-sm font-bold">Light Mode</span></>
+               <><Sun className="w-5 h-5 text-amber-500" />{!isSidebarCollapsed && <span className="text-sm font-bold">Light Mode</span>}</>
              ) : (
-               <><Moon className="w-5 h-5 text-indigo-500" /><span className="text-sm font-bold">Dark Mode</span></>
+               <><Moon className="w-5 h-5 text-indigo-500" />{!isSidebarCollapsed && <span className="text-sm font-bold">Dark Mode</span>}</>
              )}
            </button>
            <button
              onClick={handleLogout}
-             className="w-full flex items-center justify-center gap-4 py-4 px-6 nm-button text-red-500 rounded-2xl group"
+             className={cn("w-full flex items-center gap-4 py-4 nm-button text-red-500 rounded-2xl group transition-all", isSidebarCollapsed ? "justify-center" : "px-6 justify-center")}
            >
              <LogOut className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-             <span className="font-semibold text-sm">Logout</span>
+             {!isSidebarCollapsed && <span className="font-semibold text-sm">Logout</span>}
            </button>
         </div>
-      </aside>
+      </motion.aside>
 
       <main className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 relative bg-white dark:bg-slate-950">
         <header className="flex flex-col lg:flex-row justify-between items-center mb-8 sticky top-0 z-30 py-4 gap-6 backdrop-blur-xl bg-white/90 dark:bg-slate-950/90 border-b border-slate-100 dark:border-white/5">
@@ -237,7 +342,7 @@ export default function App() {
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden nm-button p-3 rounded-xl text-slate-950 dark:text-orange-500"
             >
-              <LayoutDashboard className="w-5 h-5" />
+              <Menu className="w-5 h-5" />
             </button>
             <div className="flex-1 lg:flex-none">
               <h2 className="text-xl lg:text-3xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">
@@ -295,7 +400,7 @@ export default function App() {
             transition={{ duration: 0.3 }}
           >
             {activeTab === "dashboard" && <Dashboard user={profile} onNavigate={handleNavigate} />}
-            {activeTab === "agency" && <BrandManager />}
+            {activeTab === "agency" && <BrandManager user={profile} />}
             {activeTab === "planner" && <ContentPlanner user={profile} />}
             {activeTab.startsWith("ai_studio") && (
               <AICreativeStudio 
@@ -320,43 +425,41 @@ export default function App() {
         <footer className="mt-24 pt-12 pb-12 border-t border-slate-100 dark:border-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-left mb-12">
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Core Services</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <li>AI Content Generation</li>
-                <li>8K Image & Video Synthesis</li>
-                <li>Professional Media Editing</li>
-                <li>Strategic Content Planning</li>
-                <li>Global Multi-User Chat</li>
+              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">AI Intelligence</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium font-sans">
+                <li>Image Generation</li>
+                <li>Voice Generation</li>
+                <li>Video Generation</li>
+                <li>Design Studio</li>
+                <li>Neural Utils</li>
+                <li>Brand Identity</li>
               </ul>
             </div>
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Creative OS Tools</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <li>Automated Social Scheduler</li>
-                <li>Pro-Grade Vector Editor</li>
-                <li>Brand Portfolio Builder</li>
-                <li>Real-time Growth Analytics</li>
-                <li>Cross-Platform Insights</li>
+              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Creative Studio</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium font-sans">
+                <li>Photo Editor</li>
+                <li>Designer Chat</li>
+                <li>Content Planner</li>
+                <li>Portfolio Builder</li>
               </ul>
             </div>
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Enterprise</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <li>API Integration Hub</li>
-                <li>Team Workspace Management</li>
-                <li>Advanced Security AES-256</li>
-                <li>Custom 8K Prompt Engine</li>
-                <li>Dedicated Creative Support</li>
+              <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Management</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium font-sans">
+                <li>Brand Manager</li>
+                <li>My Portfolio</li>
+                <li>Analytics Hub</li>
+                <li>Team Space</li>
               </ul>
             </div>
             <div className="space-y-4">
               <h4 className="font-bold text-slate-400 uppercase tracking-widest text-xs">Productivity</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium font-sans">
                 <li>Smart Calendar Sync</li>
                 <li>Automated Invoicing Pro</li>
                 <li>Secure Asset Storage</li>
-                <li>Client Collaboration Portal</li>
-                <li>One-Click Portfolio Live</li>
+                <li>Neural Firewall</li>
               </ul>
             </div>
           </div>

@@ -4,7 +4,6 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
-import OpenAI from "openai";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 
@@ -18,64 +17,55 @@ const PORT = 3000;
 
 // Security Middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for Vite dev mode
+  crossOriginEmbedderPolicy: false,
+  frameguard: false, // Allow iframe rendering in AI Studio
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "https:", "https://images.unsplash.com", "https://*.google.com", "https://*.dicebear.com"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://*.google.com", "https://*.googleapis.com", "https://*.firebaseapp.com", "https://*.gstatic.com"],
+      "connect-src": ["'self'", "https://*.googleapis.com", "https://*.firebaseio.com", "https://*.supabase.co", "wss://*.run.app", "https://*.firebaseapp.com", "https://*.google.com"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
+      "frame-src": ["'self'", "https://*.firebaseapp.com", "https://*.google.com", "https://*.run.app"],
+      "frame-ancestors": ["'self'", "https://*.google.com", "https://*.run.app"],
+    }
+  },
 }));
+
+// Strictly allow current preview domain in production
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [process.env.APP_URL].filter(Boolean) as string[]
+  : ['*'];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST'],
 }));
-app.use(express.json());
 
-// Rate Limiting
-const aiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute for free users (simplified)
-  message: { error: "Neural Engine Rate Limit Exceeded. Upgrade to Pro for 300/min." },
-  standardHeaders: true,
-  legacyHeaders: false,
+app.use(express.json({ limit: '10kb' })); // Mitigate payload size attacks
+
+// Global Rate Limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: "Too many requests from this IP, please try again after 15 minutes" }
 });
-
-// DeepSeek Client (initialized lazily)
-let deepseekClient: OpenAI | null = null;
-const getDeepSeek = () => {
-  if (!deepseekClient) {
-    const apiKey = process.env.DEEPSEEK_API_KEY || "sk-dummy"; // Allow boot, fail on use
-    deepseekClient = new OpenAI({
-      apiKey,
-      baseURL: "https://api.deepseek.com",
-    });
-  }
-  return deepseekClient;
-};
+app.use(globalLimiter);
 
 // --- API ROUTES ---
-
-app.post("/api/proxy/deepseek", aiLimiter, async (req, res) => {
-  try {
-    const { model, messages } = req.body;
-    const client = getDeepSeek();
-
-    // DeepSeek API specific: Reasoner requires different handling if used,
-    // but standard chat works with chat.completions.
-    const response = await client.chat.completions.create({
-      model: model || "deepseek-chat",
-      messages,
-      response_format: { type: "json_object" },
-      max_tokens: 2048,
-    });
-
-    res.json(response.choices[0].message);
-  } catch (error: any) {
-    console.error("DeepSeek Proxy Error:", error);
-    res.status(500).json({ error: error.message || "Neural Engine Failure" });
-  }
-});
 
 app.get("/api/health", (req, res) => {
   res.json({ 
     status: "online", 
     service: "BRANDAVOX-CORE", 
-    engines: ["DeepSeek-V3", "DeepSeek-VL"],
+    engines: ["Gemini-2.0-Flash", "Gemini-2.0-Pro"],
     security: "Helmet+CORS+E2E",
     timestamp: new Date().toISOString() 
   });

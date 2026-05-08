@@ -12,7 +12,9 @@ import {
   Mic2,
   PenTool,
   Sparkles,
-  Activity
+  Activity,
+  BarChart3,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db } from "../lib/firebase";
@@ -43,7 +45,17 @@ export default function Dashboard({ user, onNavigate }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    // Only fetch from Firestore if we have a real user (not guest)
+    if (!user || user.uid === 'guest-user') {
+      if (user?.uid === 'guest-user') {
+         // Mock activity for demo mode
+         setRecentActivity([
+           { id: 'm1', senderName: 'System', text: 'Welcome to Brandavox Demo', timestamp: { toDate: () => new Date() } },
+           { id: 'm2', senderName: 'Nerve AI', text: 'Neural Engine standby...', timestamp: { toDate: () => new Date() } }
+         ]);
+      }
+      return;
+    }
 
     const q = query(
       collection(db, "chats", "global-nerve", "messages"),
@@ -117,29 +129,29 @@ export default function Dashboard({ user, onNavigate }: DashboardProps) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
         {[
-          { label: "Total Reach", value: "1.2M", icon: Eye, color: "text-blue-500", trend: "+12%" },
-          { label: "Engagement", value: "84.5K", icon: Target, color: "text-rose-500", trend: "+5.4%" },
-          { label: "Active Clients", value: "12", icon: Users, color: "text-orange-500", trend: "+2" },
-          { label: "Conversions", value: "3.4%", icon: TrendingUp, color: "text-amber-500", trend: "+0.8%" },
+          { label: "Total Revenue", value: "₦21,177.5", icon: BarChart3, color: "bg-orange-600/10 text-orange-600", trend: "+12%" },
+          { label: "Transactions", value: "845", icon: Activity, color: "bg-emerald-600/10 text-emerald-600", trend: "+5.4%" },
+          { label: "My Brands", value: "12", icon: Globe, color: "bg-indigo-600/10 text-indigo-600", trend: "+2" },
+          { label: "Neural Reach", value: "3.4M", icon: Sparkles, color: "bg-purple-600/10 text-purple-600", trend: "+0.8%" },
         ].map((stat, i) => (
           <motion.div 
             key={i}
             whileHover={{ y: -5 }}
-            className="nm-flat p-6 rounded-3xl space-y-4"
+            className="nm-flat p-6 rounded-3xl flex items-center gap-6"
           >
-            <div className="flex justify-between items-start">
-              <div className={`p-3 rounded-2xl nm-inset ${stat.color}`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <span className="text-xs font-bold text-orange-500 flex items-center gap-1">
-                <ArrowUpRight className="w-3 h-3" /> {stat.trend}
-              </span>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${stat.color}`}>
+              <stat.icon className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm text-slate-700 dark:text-slate-400 font-bold uppercase tracking-wider">{stat.label}</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stat.value}</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{stat.value}</h3>
+              {stat.trend && (
+                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5 mt-1">
+                   <ArrowUpRight className="w-3 h-3" /> {stat.trend}
+                </span>
+              )}
             </div>
           </motion.div>
         ))}
