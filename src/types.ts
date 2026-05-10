@@ -4,6 +4,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   role: 'owner' | 'admin' | 'client';
+  whatsapp?: string;
   createdAt: any;
 }
 

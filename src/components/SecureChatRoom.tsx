@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Shield, Lock, CheckCheck, Bot, Sparkles, MessageSquare, Users } from "lucide-react";
+import { Send, Shield, Lock, CheckCheck, Bot, Sparkles, MessageSquare, Users, Trash2, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { EncryptionService } from "../lib/security/encryption";
@@ -13,7 +13,10 @@ import {
   Timestamp,
   where,
   setDoc,
-  doc
+  doc,
+  deleteDoc,
+  writeBatch,
+  getDocs
 } from "firebase/firestore";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -168,6 +171,36 @@ export default function SecureChatRoom({ user }: { user: any }) {
     }
   };
 
+  const deleteMessage = async (msgId: string) => {
+    if (!user || user.uid === 'guest-user') {
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, "chats", activeChatId, "messages", msgId));
+    } catch (e) { console.error(e); }
+  };
+
+  const terminateSession = async (chatId: string) => {
+    if (chatId === 'global-nerve') {
+      alert("Common infrastructure nodes cannot be terminated.");
+      return;
+    }
+    if (!confirm("Execute full session wipe? All neural packets will be unrecoverable.")) return;
+
+    try {
+      if (user.uid !== 'guest-user') {
+        const batch = writeBatch(db);
+        const msgs = await getDocs(collection(db, "chats", chatId, "messages"));
+        msgs.forEach(m => batch.delete(m.ref));
+        batch.delete(doc(db, "chats", chatId));
+        await batch.commit();
+      }
+      if (activeChatId === chatId) setActiveChatId("global-nerve");
+      setChats(prev => prev.filter(c => c.id !== chatId));
+    } catch (e) { console.error(e); }
+  };
+
   const createChat = async () => {
     if (!targetEmail || !user) return;
     try {
@@ -222,22 +255,30 @@ export default function SecureChatRoom({ user }: { user: any }) {
            </button>
 
            {chats.map(chat => (
-             <button 
-                key={chat.id}
-                onClick={() => setActiveChatId(chat.id)}
-                className={cn(
-                  "w-full p-4 rounded-3xl flex items-center gap-4 transition-all",
-                  activeChatId === chat.id ? "nm-inset bg-orange-600/5 text-orange-600" : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500"
-                )}
-             >
-                <div className="w-12 h-12 nm-flat rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
-                   <Lock className="w-5 h-5" />
-                </div>
-                <div className="text-left overflow-hidden">
-                   <p className="text-xs font-black uppercase tracking-tight truncate">{chat.id}</p>
-                   <p className="text-[10px] opacity-70 font-bold truncate">{chat.lastMessage || "No messages"}</p>
-                </div>
-             </button>
+             <div key={chat.id} className="group relative">
+                <button 
+                   onClick={() => setActiveChatId(chat.id)}
+                   className={cn(
+                     "w-full p-4 rounded-3xl flex items-center gap-4 transition-all text-left",
+                     activeChatId === chat.id ? "nm-inset bg-orange-600/5 text-orange-600" : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500"
+                   )}
+                >
+                   <div className="w-12 h-12 nm-flat rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
+                      <Lock className="w-5 h-5" />
+                   </div>
+                   <div className="overflow-hidden pr-8">
+                      <p className="text-xs font-black uppercase tracking-tight truncate">{chat.id}</p>
+                      <p className="text-[10px] opacity-70 font-bold truncate">{chat.lastMessage || "No messages"}</p>
+                   </div>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); terminateSession(chat.id); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  title="Terminate Session"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+             </div>
            ))}
         </div>
       </div>
@@ -273,23 +314,32 @@ export default function SecureChatRoom({ user }: { user: any }) {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 key={msg.id}
-                className={`flex ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
+                className={`flex group ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-md ${msg.senderId === user?.uid ? 'order-1' : 'order-2'}`}>
-                   {msg.senderId !== user?.uid && (
-                     <p className="text-[8px] font-black uppercase text-slate-400 mb-1 ml-4 tracking-widest">{msg.senderName}</p>
-                   )}
+                <div className={`max-w-md ${msg.senderId === user?.uid ? 'order-1' : 'order-2'} relative`}>
+                   <div className={`flex items-center gap-2 mb-1 ${msg.senderId === user?.uid ? 'justify-end mr-4' : 'ml-4'}`}>
+                      <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">{msg.senderName}</p>
+                      {msg.senderId === user?.uid && (
+                        <button 
+                          onClick={() => deleteMessage(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                   </div>
                    <div className={`p-5 rounded-[2rem] text-sm font-medium leading-relaxed ${
                       msg.senderId === user?.uid 
-                        ? 'bg-orange-600 text-white rounded-tr-none' 
+                        ? 'bg-orange-600 text-white rounded-tr-none shadow-lg' 
                         : 'nm-inset bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded-tl-none'
                     }`}>
                       {msg.text}
                    </div>
                    <div className={`flex items-center gap-2 mt-2 px-2 ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">
-                         {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString() : '...'}
+                      <span className="text-[10px] font-bold text-slate-400 uppercase text-right">
+                         {msg.timestamp ? new Date(msg.timestamp.toDate?.() || msg.timestamp).toLocaleTimeString() : '...'}
                       </span>
                       <CheckCheck className="w-3 h-3 text-orange-500" />
                    </div>

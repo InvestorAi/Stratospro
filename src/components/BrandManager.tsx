@@ -43,9 +43,10 @@ interface Brand {
   createdAt: any;
 }
 
-export default function BrandManager({ user }: { user: any }) {
+export default function BrandManager({ user, onBrandSelect }: { user: any, onBrandSelect?: (brand: Brand) => void }) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -292,6 +293,19 @@ export default function BrandManager({ user }: { user: any }) {
                     </div>
 
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                      <button 
+                        onClick={() => {
+                          setActiveBrandId(brand.id);
+                          onBrandSelect?.(brand);
+                        }}
+                        className={cn(
+                          "p-3 rounded-xl nm-button transition-all",
+                          activeBrandId === brand.id ? "text-orange-600 ring-2 ring-orange-500" : "text-slate-400 hover:text-orange-600"
+                        )}
+                        title="Set as Active Strategy"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                      </button>
                       <button 
                         onClick={() => openModal(brand)}
                         className="p-3 hover:bg-white rounded-xl nm-button text-indigo-600"

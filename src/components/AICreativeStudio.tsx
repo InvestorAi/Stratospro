@@ -8,11 +8,12 @@ import SmartUpgradeModal from "./SmartUpgradeModal";
 
 interface AICreativeStudioProps {
   user: any;
+  activeBrand?: any;
   onNavigate?: (tab: string) => void;
   initialTool?: 'content' | 'image' | 'video' | 'voice' | 'identity' | 'video_utils' | 'graphics' | 'strategic';
 }
 
-export default function AICreativeStudio({ user, onNavigate, initialTool }: AICreativeStudioProps) {
+export default function AICreativeStudio({ user, activeBrand, onNavigate, initialTool }: AICreativeStudioProps) {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -42,6 +43,8 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
   const [exportFormat, setExportFormat] = useState<"mp3" | "wav" | "flac" | "video">("mp3");
   const [videoFormat, setVideoFormat] = useState<"mp4" | "webm">("mp4");
   const [videoResolution, setVideoResolution] = useState<"1080p" | "4K">("1080p");
+  const [videoAspectRatio, setVideoAspectRatio] = useState<"16:9" | "9:16">("16:9");
+  const [generateThumbnail, setGenerateThumbnail] = useState(false);
   const [brandMission, setBrandMission] = useState("");
   const [brandNiche, setBrandNiche] = useState("");
   const [creativeGoal, setCreativeGoal] = useState<string>("commercial");
@@ -49,9 +52,13 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
   const [autoUpscale, setAutoUpscale] = useState(false);
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [imgExportFormat, setImgExportFormat] = useState<"png" | "jpg" | "webp">("png");
+  const [imgCompression, setImgCompression] = useState(80);
   const [units, setUnits] = useState(3); // Starting with 3 free units
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [technicalSpecs, setTechnicalSpecs] = useState("");
+  const [styleKeywords, setStyleKeywords] = useState("");
 
   const checkLimits = () => {
     if (!isPro && units <= 0) {
@@ -155,16 +162,38 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
     if (!prompt || !checkLimits()) return;
     setGenerating(true);
     try {
-      const data = await BrandavoxAI.generateContent(
-        `Forge strategy for video production: "${prompt}". 
+      let systemPrompt = `Forge strategy for video production: "${prompt}". 
         Technical Requirements:
         - Export Format: ${videoFormat.toUpperCase()}
         - Target Resolution: ${videoResolution}
-        
-        Response must include optimized parameters for this format and resolution.
-        JSON schema: frame_rate, dynamics, motion_blur, render_pass_description, encoding_preset.`
-      );
-      setResult({ ...data, type: 'video', url: `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/450`, format: videoFormat, resolution: videoResolution });
+        - Aspect Ratio: ${videoAspectRatio === '16:9' ? '16:9 (Landscape)' : '9:16 (Vertical/Shorts)'}
+        - Optimization: ${targetPlatform === 'youtube' ? 'YouTube Algorithm Optimization' : 'General Optimization'}
+        - Visual Assets: ${generateThumbnail ? 'Generate YouTube Thumbnail blueprint' : 'Standard assets'}`;
+
+      if (creativeGoal === 'motion_ad') {
+        systemPrompt = `Act as a senior neural motion designer. Synthesize a PRODUCT MOTION AD strategy for: "${prompt}".
+          Focus: 4K Photorealistic assembly/disassembly, liquid simulation, or dynamic part movement.
+          Context: Product covers, burger assembly, mobile part explosion views.
+          Resolution Required: ${videoResolution}. Format: ${videoFormat.toUpperCase()}.
+          Response must include cinematic lighting rigs, motion path logic, and render pass details for high-end commercials.
+          JSON schema: frame_rate, dynamics, motion_blur, render_pass_description, encoding_preset.`;
+      } else {
+        systemPrompt += `\nResponse must include optimized parameters for this format and resolution.
+          JSON schema: frame_rate, dynamics, motion_blur, render_pass_description, encoding_preset.`;
+      }
+
+      const data = await BrandavoxAI.generateContent(systemPrompt);
+      const width = videoAspectRatio === '16:9' ? 800 : 450;
+      const height = videoAspectRatio === '16:9' ? 450 : 800;
+      setResult({ 
+        ...data, 
+        type: 'video', 
+        url: `https://picsum.photos/seed/${encodeURIComponent(prompt)}/${width}/${height}`, 
+        format: videoFormat, 
+        resolution: videoResolution,
+        aspectRatio: videoAspectRatio,
+        thumbnailGenerated: generateThumbnail
+      });
       if (!isPro) setUnits(prev => prev - 1);
     } catch (e) { console.error(e); }
     setGenerating(false);
@@ -215,7 +244,9 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
 
       if (operationType === 'strategic') {
         if (creativeGoal === 'prompt_gen') {
-          systemPrompt = `You are an AI Prompt Engineer. Create a highly optimized, technical, and descriptive prompt for the following request: "${prompt}". 
+          const fusionPrompt = `${prompt}${technicalSpecs ? ` | Technical Specs: ${technicalSpecs}` : ''}${styleKeywords ? ` | Style Keywords: ${styleKeywords}` : ''}`;
+          systemPrompt = `You are an AI Prompt Engineer. Create a highly optimized, technical, and descriptive prompt for the following core concept: "${fusionPrompt}". 
+            Ensure you explicitly incorporate the provided Technical Specs and Style Keywords into the resulting optimized prompt.
             Include keywords for lighting, composition, style, and technical specs (e.g., 8k, Octane Render).
             Response must be JSON: { status: string, parameters: { optimized_prompt: string, style_tags: string, negative_prompt: string }, suggested_direction: string }`;
         } else if (creativeGoal === 'script_summarize') {
@@ -223,10 +254,32 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
             Response must be JSON: { status: string, parameters: { key_themes: string, target_hook: string, tone_analysis: string }, suggested_direction: string }`;
         }
       } else if (operationType === 'graphics') {
-        systemPrompt = `Act as a senior graphic designer. Synthesize a professional design blueprint for a ${creativeGoal} for the following concept: "${prompt}".
-          Focus on ${targetPlatform} dimensions and best practices.
-          Include: Recommended layer hierarchy, font pairings, primary skin tones or brand colors, and copy positioning.
-          Response must be JSON: { status: string, parameters: { canvas_size: string, typography_pairings: string, palette_hex: string, layer_structure: string }, suggested_direction: string }`;
+        const isPremiumMockup = ['packaging_mockup', 'mockup', 'packaging', 'billboard', 'storefront'].includes(creativeGoal);
+        const isLogo = creativeGoal === 'logo';
+        const isSocial = creativeGoal === 'social_post' || creativeGoal === 'thumbnail';
+        const isAd = creativeGoal === 'ad_creative' || creativeGoal === 'ad';
+        
+        if (isLogo) {
+          systemPrompt = `Act as a senior world-class brand identity designer. Create a professional LOGO SYMBOL & LOGOTYPE blueprint for: "${prompt}".
+            Focus: Minimalism, scalability, golden ratio geometry, and timeless aesthetic.
+            Include: Vector hierarchy, font pairings (one serif, one sans-serif), brand color symbolism, and negative space usage.
+            Response must be JSON: { status: string, parameters: { vector_blueprint: string, typography_pairings: string, palette_psychology: string, construction_logic: string }, suggested_direction: string }`;
+        } else if (isPremiumMockup) {
+          systemPrompt = `Act as a senior high-end brand designer. Synthesize a PREMIUM 8K MOCKUP blueprint for ${creativeGoal.replace('_', ' ')} based on: "${prompt}".
+             Focus: Hyper-realistic lighting, photorealistic textures (glass, matte, metallic), environment mapping, and client-ready presentation.
+             Parameters: Detailed render layers, smart object placement for logos, material specs, and color finish (CMYK).
+             Response must be JSON: { status: string, parameters: { canvas_size: string, mockup_render_spec: string, material_fidelity: string, logo_placement_logic: string }, suggested_direction: string }`;
+        } else if (isSocial || isAd) {
+          systemPrompt = `Act as a senior growth designer and viral marketing specialist. Synthesize a professional ${creativeGoal.replace('_', ' ')} blueprint for: "${prompt}".
+             Focus: Psychologically optimized layout for high CTR, scroll-stopping visual hierarchy, and platform-native aesthetics (e.g., YouTube, Instagram, TikTok).
+             Include: Typography tailored for mobile legibility, focal point positioning, "power words" placement, and optimized brand attribute integration.
+             Response must be JSON: { status: string, parameters: { canvas_size: string, typography_pairings: string, palette_hex: string, visual_hierarchy_logic: string }, suggested_direction: string }`;
+        } else {
+          systemPrompt = `Act as a senior graphic designer. Synthesize a professional design blueprint for a ${creativeGoal.replace('_', ' ')} for the following concept: "${prompt}".
+             Focus on ${targetPlatform} dimensions and best practices.
+             Include: Recommended layer hierarchy, font pairings, primary skin tones or brand colors, and copy positioning.
+             Response must be JSON: { status: string, parameters: { canvas_size: string, typography_pairings: string, palette_hex: string, layer_structure: string }, suggested_direction: string }`;
+        }
       } else if (operationType === 'video_utils') {
         systemPrompt = `Act as a neural video analyst. Apply ${creativeGoal} logic to the following request/content: "${prompt}".
           Include: Extraction markers, summary insights, or transcript snippets based on the goal.
@@ -278,15 +331,15 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
     setIsUpscaling(false);
   };
 
-  const handleDownloadPNG = () => {
+  const handleImageExport = () => {
     if (!result?.url) return;
     setIsExporting(true);
     setTimeout(() => {
-      alert("Neural Studio: High-resolution PNG asset synthesized and downloaded successfully.");
+      alert(`Neural Studio: High-resolution ${imgExportFormat.toUpperCase()} asset synthesized with ${imgCompression}% quality and downloaded successfully.`);
       const link = document.createElement('a');
       link.href = result.url;
       link.referrerPolicy = "no-referrer";
-      link.download = `brandavox-${result.gen_id || 'vision'}.png`;
+      link.download = `brandavox-${result.gen_id || 'vision'}.${imgExportFormat}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -432,7 +485,15 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
         ].map(tool => (
           <button
             key={tool.id}
-            onClick={() => { setActiveTool(tool.id as any); setResult(null); }}
+            onClick={() => { 
+              setActiveTool(tool.id as any); 
+              setResult(null); 
+              if (tool.id === 'strategic') setCreativeGoal('prompt_gen');
+              else if (tool.id === 'image') setCreativeGoal('commercial');
+              else if (tool.id === 'video') setCreativeGoal('commercial');
+              else if (tool.id === 'graphics') setCreativeGoal('logo');
+              else if (tool.id === 'video_utils') setCreativeGoal('reels_cutter');
+            }}
             className={`flex items-center gap-4 px-6 py-5 rounded-3xl whitespace-nowrap transition-all border ${
               activeTool === tool.id 
                 ? 'nm-inset border-orange-500/30 text-orange-600 dark:text-orange-400' 
@@ -466,7 +527,10 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                 activeTool === 'content' ? "e.g. A new eco-friendly skincare line for Gen Z..." :
                 activeTool === 'image' ? "e.g. High-res photo of a futuristic Lagos city with flying cars and neon lights, 8k resolution..." :
                 activeTool === 'voice' ? "Enter text for hyper-realistic vocal synthesis with traditional accents..." :
-                "Upload image to animate..."
+                activeTool === 'strategic' ? "Enter your core creative concept for neural prompt refinement (e.g. A futuristic luxury car in a desert)..." :
+                activeTool === 'graphics' ? "Describe the graphic design needed (e.g. A minimalist logo for a tech startup)..." :
+                activeTool === 'identity' ? "Describe your brand concept (e.g. A sustainable energy company for emerging markets)..." :
+                "Enter details for neural synthesis..."
               }
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -544,16 +608,15 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                     className="w-full p-4 nm-inset rounded-2xl bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-white border-none focus:ring-0 appearance-none cursor-pointer"
                   >
                     <optgroup label="Africa">
-                      <option>African Traditional (Regional Accents)</option>
                       <option>Nigerian (Naija) Standard</option>
-                      <option>Lagos Street Pidgin</option>
-                      <option>Ghanaian High-Life</option>
+                      <option>Nigerian (Pidgin) Casual</option>
+                      <option>Ghanaian Standard</option>
                       <option>Kenyan (English-Swahili)</option>
                       <option>South African (Ubuntu Tone)</option>
                     </optgroup>
                     <optgroup label="Global">
                       <option>United States (Natural Neutral)</option>
-                      <option>United States (Southern Warmth)</option>
+                      <option>United States (Professional/News)</option>
                       <option>United Kingdom (RP British)</option>
                       <option>United Kingdom (London Casual)</option>
                       <option>Canadian (Oshawa Style)</option>
@@ -562,18 +625,17 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Realistic Tone</label>
+                  <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Vocal Tone & Personality</label>
                   <select 
                     value={selectedTone}
                     onChange={(e) => setSelectedTone(e.target.value)}
                     className="w-full p-4 nm-inset rounded-2xl bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-white border-none focus:ring-0 appearance-none cursor-pointer"
                   >
-                    <option>Humanoid Realistic</option>
-                    <option>Professional Narrator</option>
-                    <option>Casual Podcast Host</option>
-                    <option>Excited Marketer</option>
-                    <option>Deep Cinematic Soul</option>
-                    <option>Gentle Meditation</option>
+                    <option value="Professional Manager">Professional (Corporate/News)</option>
+                    <option value="Casual Friend">Casual (Podcast/Friendly)</option>
+                    <option value="Emotional Storyteller">Emotional (Dramatic/Deep)</option>
+                    <option value="Excited Marketer">Highly Energetic (Sales/Ads)</option>
+                    <option value="Gentle Meditation">Calm & Zen (Soothing)</option>
                   </select>
                 </div>
               </div>
@@ -583,18 +645,18 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                 <div className="space-y-6">
                   <VocalParameter 
                     id="cadence"
-                    label="Cadence Intensity"
+                    label="Speech Rate (WPM)"
                     value={cadence}
                     onChange={setCadence}
-                    tooltip="Determines the speed and rhythmic pattern of speech. High values create energetic, fast-paced delivery, while low values result in a measured, calm pace."
+                    tooltip="Determines the words-per-minute (WPM) count. High values create energetic, fast-paced delivery typically used in fast-paced commercials, while low values result in a measured, calm pace for storytelling."
                   />
                   
                   <VocalParameter 
                     id="pitch"
-                    label="Vocal Pitch"
+                    label="Pitch"
                     value={pitchValue}
                     onChange={setPitchValue}
-                    tooltip="Varies the tonal frequency. Shift to higher values for a more youthful or urgent sound, or lower for a deep, authoritative, and grounded voice."
+                    tooltip="Varies the fundamental frequency of the voice. Shift to higher values for a more youthful or urgent sound, or lower for a deep, authoritative, and grounded voice."
                   />
 
                   <VocalParameter 
@@ -629,19 +691,28 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
           {activeTool === 'graphics' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Neural Design Workspace</label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1 nm-inset rounded-2xl bg-white dark:bg-slate-900">
-                  {['thumbnail', 'flyer', 'banner', 'mockup', 'ad'].map(type => (
-                    <button 
-                      key={type}
-                      onClick={() => setCreativeGoal(type)}
-                      className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${creativeGoal === type ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:text-orange-600'}`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                  <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Neural Design Presets</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1 nm-inset rounded-2xl bg-white dark:bg-slate-900">
+                      {[
+                        { id: 'logo', label: 'Logo' },
+                        { id: 'thumbnail', label: 'Thumbnail' },
+                        { id: 'flyer', label: 'Flyer' },
+                        { id: 'banner', label: 'Banner' },
+                        { id: 'ad_creative', label: 'Ad Creative' },
+                        { id: 'packaging_mockup', label: 'Packaging Mockup' },
+                        { id: 'social_post', label: 'Social Media Post' },
+                        { id: 'mockup', label: 'Mockup (Other)' }
+                      ].map(preset => (
+                        <button 
+                          key={preset.id}
+                          onClick={() => setCreativeGoal(preset.id)}
+                          className={`py-3 px-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${creativeGoal === preset.id ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:text-orange-600'}`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                  </div>
                 </div>
-              </div>
 
               <div className="nm-inset p-4 rounded-[2rem] aspect-video bg-slate-900/5 dark:bg-slate-950/40 border border-orange-500/10 flex items-center justify-center relative overflow-hidden group">
                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-orange-500/5 via-transparent to-transparent opacity-50" />
@@ -677,18 +748,18 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                   <option value="print">High-Quality Print (CMYK / 300 DPI)</option>
                 </select>
               </div>
-              {creativeGoal === 'mockup' && (
+              {['mockup', 'packaging', 'billboard', 'storefront'].includes(creativeGoal) && (
                 <div className="nm-flat p-6 rounded-3xl border border-orange-600/10 space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-orange-600/10 rounded-2xl text-orange-600">
                       <Briefcase className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Mockup Laboratory</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Enhance raw product shots into 8K branding assets</p>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Premium {creativeGoal.replace('_', ' ')} Hub</h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Synthesize 8K client-ready {creativeGoal} renders</p>
                     </div>
                   </div>
-                  <button className="w-full py-3 nm-inset rounded-xl text-[10px] font-black uppercase tracking-widest text-orange-600">Upload Raw Mockup/Product Picture</button>
+                  <button className="w-full py-3 nm-inset rounded-xl text-[10px] font-black uppercase tracking-widest text-orange-600">Upload Logo or Reference Picture</button>
                 </div>
               )}
               {creativeGoal === 'ad' && (
@@ -763,12 +834,18 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Neural Mode</label>
-                <div className="grid grid-cols-3 gap-2 p-1 nm-inset rounded-2xl bg-white dark:bg-slate-900">
+                <div className="grid grid-cols-4 gap-2 p-1 nm-inset rounded-2xl bg-white dark:bg-slate-900">
                   <button 
                     onClick={() => setCreativeGoal('commercial')}
                     className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${creativeGoal === 'commercial' ? 'bg-orange-600 text-white' : 'text-slate-400'}`}
                   >
                     Ads
+                  </button>
+                  <button 
+                    onClick={() => setCreativeGoal('motion_ad')}
+                    className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${creativeGoal === 'motion_ad' ? 'bg-orange-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Motion Ad
                   </button>
                   <button 
                     onClick={() => setCreativeGoal('cinematic')}
@@ -780,7 +857,7 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                     onClick={() => setCreativeGoal('pic_to_video')}
                     className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${creativeGoal === 'pic_to_video' ? 'bg-orange-600 text-white' : 'text-slate-400'}`}
                   >
-                    Pic-to-Video
+                    Pic-to-Vid
                   </button>
                 </div>
               </div>
@@ -824,6 +901,76 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                 </div>
               </div>
               
+              <div className="nm-flat p-6 rounded-3xl border border-orange-600/10 bg-white/30 dark:bg-black/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-600/10 rounded-xl text-orange-600">
+                      <Monitor className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">YouTube Optimization</h4>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-tight">Sync for growth algorithm</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auto-Thumb</span>
+                    <button 
+                      onClick={() => setGenerateThumbnail(!generateThumbnail)}
+                      className={`w-10 h-5 rounded-full p-1 transition-all ${generateThumbnail ? 'bg-orange-600' : 'bg-slate-200 dark:bg-slate-800'}`}
+                    >
+                      <div className={`w-3 h-3 rounded-full bg-white transition-all transform ${generateThumbnail ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Platform Preset</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => setVideoAspectRatio('16:9')}
+                      className={`p-4 rounded-2xl flex flex-col items-center gap-3 transition-all ${videoAspectRatio === '16:9' ? 'nm-inset bg-orange-600/5 text-orange-600' : 'nm-flat text-slate-400'}`}
+                    >
+                      <div className="w-12 h-8 border-2 border-current rounded opacity-40 flex items-center justify-center">
+                        <span className="text-[8px] font-black">16:9</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase">Standard (Landscape)</span>
+                    </button>
+                    <button 
+                      onClick={() => setVideoAspectRatio('9:16')}
+                      className={`p-4 rounded-2xl flex flex-col items-center gap-3 transition-all ${videoAspectRatio === '9:16' ? 'nm-inset bg-orange-600/5 text-orange-600' : 'nm-flat text-slate-400'}`}
+                    >
+                      <div className="w-8 h-12 border-2 border-current rounded opacity-40 flex items-center justify-center">
+                        <span className="text-[8px] font-black rotate-90">9:16</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase">Shorts (Vertical)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {creativeGoal === 'motion_ad' && (
+                <div className="nm-flat p-8 rounded-3xl border border-orange-600/20 bg-orange-600/5 space-y-6">
+                   <div className="flex items-center gap-4">
+                      <div className="p-4 bg-orange-600 rounded-2xl text-white shadow-xl">
+                         <Zap className="w-6 h-6" />
+                      </div>
+                      <div>
+                         <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tighter">4K Product Assembly Synth</h4>
+                         <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Neural Product Motion Ads</p>
+                      </div>
+                   </div>
+                   <div className="p-4 nm-inset rounded-2xl bg-white/50 dark:bg-black/20 text-[10px] font-bold text-slate-500 uppercase leading-relaxed">
+                      Upload your product shots (PNG/JPG) to initiate the neural assembly sequences. Our engine handles:
+                      <ul className="mt-2 space-y-1 text-orange-600">
+                         <li>• Part Disassembly & Explosion Views</li>
+                         <li>• Fluid Simulation & Label Wrapping</li>
+                         <li>• Dynamic Cinematic Lighting Renders</li>
+                      </ul>
+                   </div>
+                   <button className="w-full py-4 nm-button bg-orange-600 rounded-2xl text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-orange-600/20">Upload Product Blueprints (PNG/MP4/OBJ)</button>
+                </div>
+              )}
+
               <div className="nm-flat p-6 rounded-3xl border border-orange-600/10 space-y-4">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -845,7 +992,9 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
           {activeTool === 'strategic' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Strategic Analysis</label>
+                <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">
+                  {creativeGoal === 'prompt_gen' ? 'Neural Prompt Architecture' : 'Strategic Analysis'}
+                </label>
                 <div className="grid grid-cols-2 gap-2 p-1 nm-inset rounded-2xl bg-white dark:bg-slate-900">
                   {['prompt_gen', 'script_summarize'].map(type => (
                     <button 
@@ -858,6 +1007,64 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                   ))}
                 </div>
               </div>
+
+              {creativeGoal === 'prompt_gen' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-6"
+                >
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Technical Specs</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. 8k, Octane Render, Ray Tracing, Unreal Engine 5"
+                      value={technicalSpecs}
+                      onChange={(e) => setTechnicalSpecs(e.target.value)}
+                      className="w-full p-4 nm-inset rounded-2xl bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-white border-none focus:ring-0 text-sm placeholder:text-slate-400"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {['8K', 'Octane Render', 'Unreal Engine 5', 'Ray Tracing', 'Macro Lens', 'DOF', 'Volumetric Lighting', 'Global Illumination', 'PBR Textures'].map(spec => (
+                        <button 
+                          key={spec}
+                          onClick={() => setTechnicalSpecs(prev => prev.includes(spec) ? prev : prev ? `${prev}, ${spec}` : spec)}
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-500 hover:text-orange-600 transition-colors"
+                        >
+                          + {spec}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-400 font-sans tracking-widest">Style Keywords</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. Cinematic, Photorealistic, Surreal, Cyberpunk"
+                      value={styleKeywords}
+                      onChange={(e) => setStyleKeywords(e.target.value)}
+                      className="w-full p-4 nm-inset rounded-2xl bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-white border-none focus:ring-0 text-sm placeholder:text-slate-400"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {['Cinematic', 'Photorealistic', 'Surreal', 'Cyberpunk', 'Hyper-realistic', 'Minimalist', 'Baroque', 'Synthwave', 'Futuristic', 'Organic'].map(style => (
+                        <button 
+                          key={style}
+                          onClick={() => setStyleKeywords(prev => prev.includes(style) ? prev : prev ? `${prev}, ${style}` : style)}
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-500 hover:text-orange-600 transition-colors"
+                        >
+                          + {style}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 nm-flat rounded-2xl bg-orange-600/5 border border-orange-500/10">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+                      Neural Fusion Active: These parameters will be automatically synthesized into your core vision for maximum fidelity.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </div>
           )}
 
@@ -1131,19 +1338,45 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                     <div className="p-5 nm-flat rounded-2xl bg-white/50 dark:bg-black/20 border border-white/10">
                       <p className="text-sm font-bold leading-relaxed">{result.status || "Neural operation successfully verified by Gemini Engine."}</p>
                       {activeTool === 'strategic' && creativeGoal === 'prompt_gen' && result.parameters?.optimized_prompt && (
-                        <div className="mt-4 space-y-3">
-                          <div className="p-4 nm-inset rounded-xl bg-orange-600/5 font-mono text-xs text-orange-600 border border-orange-500/20 relative group">
-                            {result.parameters.optimized_prompt}
-                            <button 
-                              onClick={() => {
-                                navigator.clipboard.writeText(result.parameters.optimized_prompt);
-                                alert("Prompt cloned to neural buffer.");
-                              }}
-                              className="absolute top-2 right-2 p-2 nm-button rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Layers className="w-3 h-3" />
-                            </button>
+                        <div className="mt-4 space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Optimized Prompt</label>
+                            <div className="p-4 nm-inset rounded-xl bg-orange-600/5 font-mono text-xs text-orange-600 border border-orange-500/20 relative group">
+                              {result.parameters.optimized_prompt}
+                              <button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText(result.parameters.optimized_prompt);
+                                  alert("Prompt cloned to neural buffer.");
+                                }}
+                                className="absolute top-2 right-2 p-2 nm-button rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Layers className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
+
+                          {result.parameters.negative_prompt && (
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Negative Prompt</label>
+                              <div className="p-3 nm-inset rounded-xl bg-red-600/5 font-mono text-[10px] text-red-600 border border-red-500/10">
+                                {result.parameters.negative_prompt}
+                              </div>
+                            </div>
+                          )}
+
+                          {result.parameters.style_tags && (
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Style Matrix</label>
+                              <div className="flex flex-wrap gap-2">
+                                {(typeof result.parameters.style_tags === 'string' ? result.parameters.style_tags.split(',') : result.parameters.style_tags).map((tag: string) => (
+                                  <span key={tag} className="px-2 py-1 bg-orange-600/10 text-orange-600 rounded-md text-[9px] font-bold uppercase">
+                                    {tag.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center italic">Optimized Neural Directives</p>
                         </div>
                       )}
@@ -1282,14 +1515,45 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                   </button>
                 </div>
 
+                <div className="nm-flat p-4 rounded-2xl bg-white/30 dark:bg-black/10 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Export Format</label>
+                      <select 
+                        value={imgExportFormat}
+                        onChange={(e) => setImgExportFormat(e.target.value as any)}
+                        className="w-full p-2 nm-inset rounded-xl bg-transparent font-black text-[10px] uppercase text-slate-600 dark:text-slate-300 border-none outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="png" className="bg-slate-900">PNG (Lossless)</option>
+                        <option value="jpg" className="bg-slate-900">JPG (Standard)</option>
+                        <option value="webp" className="bg-slate-900">WebP (Optimized)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Quality</label>
+                        <span className="text-[9px] font-black text-orange-600">{imgCompression}%</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min="10"
+                        max="100"
+                        value={imgCompression}
+                        onChange={(e) => setImgCompression(parseInt(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-600 mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex gap-4">
                   <button 
                     disabled={isExporting}
-                    onClick={handleDownloadPNG}
+                    onClick={handleImageExport}
                     className="flex-1 py-4 nm-button rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 text-slate-900 dark:text-white hover:scale-[1.02] transition-all disabled:opacity-50"
                   >
                     {isExporting ? <RefreshCw className="animate-spin w-4 h-4" /> : <Download className="w-4 h-4" />}
-                    Download PNG
+                    Download {imgExportFormat.toUpperCase()}
                   </button>
                   <button 
                     onClick={() => {
@@ -1316,7 +1580,7 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
 
             {result && activeTool === 'video' && result.frame_rate && (
                <div className="space-y-6">
-                 <div className="nm-inset p-2 rounded-2xl overflow-hidden aspect-video relative group cursor-pointer">
+                 <div className={`nm-inset p-2 rounded-2xl overflow-hidden relative group cursor-pointer ${result.aspectRatio === '9:16' ? 'aspect-[9/16] max-w-[300px] mx-auto' : 'aspect-video'}`}>
                     <img src={result.url} className="w-full h-full object-cover blur-[2px]" />
                     {!isPro && (
                       <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center rotate-[-15deg] opacity-20 overflow-hidden select-none">
@@ -1331,7 +1595,10 @@ export default function AICreativeStudio({ user, onNavigate, initialTool }: AICr
                        </div>
                     </div>
                     <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-xl border border-white/10 z-10">
-                       <p className="text-[10px] font-black uppercase text-orange-500">Video Render Engine · {result.frame_rate} · {result.resolution} · {result.format?.toUpperCase()}</p>
+                       <p className="text-[10px] font-black uppercase text-orange-500">Video Render Engine · {result.frame_rate} · {result.resolution} · {result.format?.toUpperCase()} · {result.aspectRatio}</p>
+                       {result.thumbnailGenerated && (
+                         <p className="text-[8px] font-black text-emerald-500 uppercase mt-1">✓ YouTube Thumbnail Matrix Generated</p>
+                       )}
                        <div className="h-1 w-full bg-white/20 mt-2 rounded-full overflow-hidden">
                           <motion.div initial={{ width: 0 }} animate={{ width: '65%' }} transition={{ duration: 10, repeat: Infinity }} className="h-full bg-orange-600" />
                        </div>

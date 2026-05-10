@@ -36,6 +36,18 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
   const navigateToDashboard = onEnterDemo || onLogin;
   const features = [
     {
+      title: "Strategy Core",
+      icon: BrainCircuit,
+      desc: "Neural campaign intelligence and strategic market positioning for Gen-Z and beyond. Sync your vision with neural foresight.",
+      color: "text-orange-600 dark:text-orange-400"
+    },
+    {
+      title: "Neural Prompts",
+      icon: Zap,
+      desc: "Automatic high-fidelity prompt engineering with refined technical specs and style keywords for any AI engine.",
+      color: "text-amber-600 dark:text-amber-400"
+    },
+    {
       title: "Image Generation",
       icon: Wand2,
       desc: "Synthesize hyper-realistic 8K visuals and blueprints with neural upscaling. Professional-grade high-fidelity output.",
@@ -48,28 +60,34 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
       color: "text-orange-600 dark:text-orange-400"
     },
     {
-      title: "Video Generation",
+      title: "Neural Motion Ads",
       icon: Video,
-      desc: "Transform static concepts into cinematic video sequences. Neural interpolation for fluid, lifelike motion.",
+      desc: "Turn product shots into 4K cinematic ads. Neural assembly sequences for burgers, cans, and devices. Professional client-ready motion.",
+      color: "text-red-600 dark:text-red-400"
+    },
+    {
+      title: "Neural Utils",
+      icon: Scissors,
+      desc: "Instant reels cut, transcription, and smart content summarization for rapid viral formatting and multi-platform scaling.",
+      color: "text-emerald-600 dark:text-emerald-400"
+    },
+    {
+      title: "Premium Mockups",
+      icon: Layout,
+      desc: "Synthesize 8K realistic branding on packaging, billboards, and storefronts. Hyper-realistic lighting and photorealistic textures.",
+      color: "text-indigo-600 dark:text-indigo-400"
+    },
+    {
+      title: "Logo Creation",
+      icon: Palette,
+      desc: "Master-level brand identity generation. Golden ratio logos, professional typography pairings, and vector-ready blueprints.",
       color: "text-orange-600 dark:text-orange-400"
     },
     {
       title: "Design Studio",
       icon: Layout,
-      desc: "Real-time design suite for thumbnails, flyers, and mockups. Professional exports in PSD and Canva formats.",
+      desc: "Real-time design suite for thumbnails, flyers, and social ads. High-fidelity layouts with neural arrangement logic.",
       color: "text-blue-600 dark:text-blue-400"
-    },
-    {
-      title: "Neural Video Utils",
-      icon: Scissors,
-      desc: "AI-powered video tools: Reels cutter, summarizer, and neural audio/text extraction for viral growth.",
-      color: "text-emerald-600 dark:text-emerald-400"
-    },
-    {
-      title: "Neural Prompts",
-      icon: FileText,
-      desc: "Master-level prompt engineering for midjourney, stable diffusion, and video scripts via neural synthesis.",
-      color: "text-amber-600 dark:text-amber-400"
     },
     {
       title: "Brand Identity",
@@ -111,9 +129,10 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
       description: "For professionals scaling output",
       features: [
         "Unlimited Neural Syntheses",
-        "Ultra-HD 8K Output",
+        "Ultra-HD 8K Brand Mockups",
+        "4K Product Motion Ad Engine",
+        "Professional Logo Blueprinting",
         "Commercial Usage Rights",
-        "Advanced Voice Lab",
         "Priority Support"
       ],
       cta: "Upgrade to Pro",
@@ -177,31 +196,49 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
                 onClick={onEnterDemo || onLogin}
                 className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <Wand2 className="w-4 h-4" /> Image Generation
+                <BrainCircuit className="w-4 h-4" /> Strategy
               </button>
               <button 
                 onClick={onEnterDemo || onLogin}
                 className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <Mic2 className="w-4 h-4" /> Voice Generation
+                <Zap className="w-4 h-4" /> Prompts
               </button>
               <button 
                 onClick={onEnterDemo || onLogin}
                 className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <Palette className="w-4 h-4" /> Brand Identity
+                <Wand2 className="w-4 h-4" /> Image
               </button>
               <button 
                 onClick={onEnterDemo || onLogin}
                 className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <Layout className="w-4 h-4" /> Design Studio
+                <Mic2 className="w-4 h-4" /> Voice
               </button>
               <button 
                 onClick={onEnterDemo || onLogin}
                 className="hover:text-orange-600 transition-colors flex items-center gap-2"
               >
-                <Video className="w-4 h-4" /> Video Generation
+                <Video className="w-4 h-4" /> Motion
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Palette className="w-4 h-4" /> Identity
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Layout className="w-4 h-4" /> Design
+              </button>
+              <button 
+                onClick={onEnterDemo || onLogin}
+                className="hover:text-orange-600 transition-colors flex items-center gap-2"
+              >
+                <Scissors className="w-4 h-4" /> Utils
               </button>
               <button 
                 onClick={onEnterDemo || onLogin}
@@ -524,6 +561,15 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
 
           {/* Tools Grid Directory */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-5xl mx-auto pt-20 border-t border-slate-100 dark:border-white/5 text-center justify-items-center">
+              <div className="space-y-6 flex flex-col items-center">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Premium Synth</h5>
+                <ul className="space-y-4 flex flex-col items-center">
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Neural Motion Ads</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">8K Brand Mockups</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Packaging Design</button></li>
+                   <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Billboard Engine</button></li>
+                </ul>
+             </div>
               <div className="space-y-6 flex flex-col items-center">
                 <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">AI Intelligence</h5>
                 <ul className="space-y-4 flex flex-col items-center">
