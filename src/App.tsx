@@ -76,6 +76,7 @@ import CompetitorContentTracker from "./components/brandavox/CompetitorContentTr
 import SystemHealth from "./components/brandavox/SystemHealth";
 
 import { EncryptionService } from "./lib/security/encryption";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 const ROOM_KEY = "NEXURA_GLOBAL_NERVE_SECURE";
 
 import { clsx, type ClassValue } from "clsx";
@@ -876,8 +877,18 @@ export default function App() {
   };
 
   if (activeTab.startsWith('legal_')) {
-    return renderLegalView();
+    return (
+      <>
+        {renderLegalView()}
+        <SpeedInsights />
+      </>
+    );
   }
 
-  return mainDashboard;
+  return (
+    <>
+      {mainDashboard}
+      <SpeedInsights />
+    </>
+  );
 }
