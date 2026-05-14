@@ -6,7 +6,7 @@ import CryptoJS from 'crypto-js';
  */
 export const EncryptionService = {
   // System-level pepper for additional hash complexity
-  SYSTEM_PEPPER: 'NEXURA_NERVE_SIGMA_99',
+  SYSTEM_PEPPER: (import.meta as any).env?.VITE_SYSTEM_PEPPER || 'NEXURA_NERVE_SIGMA_99_DEFAULT',
 
   /**
    * Simple but robust AES-256 encryption for demo environment

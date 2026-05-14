@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Shield, Lock, CheckCheck, Bot, Sparkles, MessageSquare, Users, Trash2, XCircle } from "lucide-react";
+import { Send, Shield, Lock, CheckCheck, Bot, Sparkles, MessageSquare, Users, Trash2, XCircle, Twitter, Instagram, Linkedin, Github } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { EncryptionService } from "../lib/security/encryption";
+import { BrandavoxAI } from "../lib/ai/gemini-engine";
 import { 
   collection, 
   addDoc, 
@@ -44,6 +45,7 @@ export default function SecureChatRoom({ user }: { user: any }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
   const [isEncrypting, setIsEncrypting] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [targetEmail, setTargetEmail] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -158,11 +160,39 @@ export default function SecureChatRoom({ user }: { user: any }) {
         timestamp: serverTimestamp(),
       });
 
-      // Update chat meta
-      await setDoc(doc(db, "chats", activeChatId), {
-        lastMessage: textToSend,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      // AI Response Logic
+      if (aiEnabled) {
+        setTimeout(async () => {
+          try {
+            const systemPrompt = `You are the Brandavox Nerve AI Assistant. You are currently in a secure encrypted chat session. Respond to the following message from a strategist concisely and professionally: "${textToSend}"`;
+            const aiResponseText = await BrandavoxAI.generateContent(systemPrompt);
+            const aiCipherText = EncryptionService.encrypt(aiResponseText, ROOM_KEY);
+
+            if (user.uid === 'guest-user') {
+              const aiMockMsg = {
+                id: (Date.now() + 1).toString(),
+                senderId: 'ai-assistant',
+                senderName: 'Nerve AI',
+                cipherText: aiCipherText,
+                text: aiResponseText,
+                isEncrypted: true,
+                timestamp: { toDate: () => new Date() },
+              };
+              setMessages(prev => [...prev, aiMockMsg]);
+            } else {
+              await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                senderId: 'ai-assistant',
+                senderName: 'Nerve AI',
+                cipherText: aiCipherText,
+                isEncrypted: true,
+                timestamp: serverTimestamp(),
+              });
+            }
+          } catch (e) {
+            console.error("AI Assistant Error:", e);
+          }
+        }, 1000);
+      }
 
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -281,6 +311,25 @@ export default function SecureChatRoom({ user }: { user: any }) {
              </div>
            ))}
         </div>
+
+        {/* Sidebar Footer with Social Icons */}
+        <div className="p-8 border-t border-slate-100 dark:border-white/5 flex items-center justify-start gap-5 opacity-40 group transition-opacity hover:opacity-100">
+          <button className="text-slate-400 hover:text-orange-600 hover:scale-125 transition-all duration-300">
+            <Twitter className="w-4 h-4" />
+          </button>
+          <button className="text-slate-400 hover:text-orange-600 hover:scale-125 transition-all duration-300">
+            <Instagram className="w-4 h-4" />
+          </button>
+          <button className="text-slate-400 hover:text-orange-600 hover:scale-125 transition-all duration-300">
+            <Linkedin className="w-4 h-4" />
+          </button>
+          <button className="text-slate-400 hover:text-orange-600 hover:scale-125 transition-all duration-300">
+            <Github className="w-4 h-4" />
+          </button>
+          <div className="flex-1 text-right">
+            <span className="text-[7px] font-black uppercase text-slate-400 tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-opacity">Nerve Secure</span>
+          </div>
+        </div>
       </div>
 
       {/* Main Chat Area */}
@@ -292,18 +341,44 @@ export default function SecureChatRoom({ user }: { user: any }) {
 
         {/* Header */}
         <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-             <div className="p-3 bg-orange-600 rounded-2xl shadow-lg shadow-orange-600/20">
-                <MessageSquare className="w-6 h-6 text-white" />
-             </div>
-             <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">
-                  {activeChatId === 'global-nerve' ? 'Brandavox Nerve' : 'Encrypted Session'}
-                </h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                   <Shield className="w-3 h-3 text-emerald-500" /> Secure Node: {activeChatId}
-                </p>
-             </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+               <div className="p-3 bg-orange-600 rounded-2xl shadow-lg shadow-orange-600/20">
+                  <MessageSquare className="w-6 h-6 text-white" />
+               </div>
+               <div>
+                  <h2 className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">
+                    {activeChatId === 'global-nerve' ? 'Brandavox Nerve' : 'Encrypted Session'}
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                     <Shield className="w-3 h-3 text-emerald-500" /> Secure Node: {activeChatId}
+                  </p>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div 
+                onClick={() => setAiEnabled(!aiEnabled)}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-widest transition-colors",
+                  aiEnabled ? "text-orange-600" : "text-slate-400"
+                )}>
+                  Neural Assistant
+                </span>
+                <div className={cn(
+                  "w-12 h-6 rounded-full transition-all flex items-center px-1",
+                  aiEnabled ? "bg-orange-600 nm-inset" : "bg-slate-200 dark:bg-slate-800 nm-inset"
+                )}>
+                  <motion.div 
+                    animate={{ x: aiEnabled ? 24 : 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="w-4 h-4 bg-white rounded-full shadow-lg"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

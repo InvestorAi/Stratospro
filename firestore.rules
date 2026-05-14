@@ -80,6 +80,204 @@ service cloud.firestore {
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
+    match /portfolios/{portfolioId} {
+      function isValidPortfolio(data) {
+        return data.userId is string 
+          && data.userId == request.auth.uid
+          && data.slug is string && data.slug.size() < 50
+          && data.title is string && data.title.size() < 100;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidPortfolio(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidPortfolio(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      
+      match /presence/{presenceId} {
+        function isValidPresence(data) {
+           return data.uid == request.auth.uid
+             && data.resourceId == portfolioId;
+        }
+        
+        allow list: if isSignedIn();
+        allow get: if isSignedIn();
+        allow create: if isSignedIn() && isOwner(presenceId) && isValidPresence(incoming());
+        allow update: if isSignedIn() && isOwner(presenceId) && isValidPresence(incoming());
+        allow delete: if isSignedIn() && isOwner(presenceId);
+      }
+    }
+
+    // --- CONTENT WORKFLOW Hub ---
+    match /tasks/{taskId} {
+      function isValidTask(data) {
+        return data.authorId == request.auth.uid
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+          && data.status in ['todo', 'in-progress', 'done']
+          && (data.priority == null || data.priority in ['low', 'medium', 'high'])
+          && (data.description == null || (data.description is string && data.description.size() <= 1000));
+      }
+
+      allow list: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      allow get: if isSignedIn() && existing().authorId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming()) && (incoming().createdAt == request.time || incoming().createdAt is string);
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isValidTask(incoming()) && incoming().authorId == existing().authorId;
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    // --- BRANDAVOX AI: AGENCY & SOCIAL SECURITY ---
+    
+    function isValidLead(data) {
+      return data.ownerId == request.auth.uid &&
+             data.email is string && data.email.size() <= 100 &&
+             data.status in ['verified', 'pending', 'blocked'];
+    }
+
+    function isValidClient(data) {
+      return data.agencyId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.status in ['active', 'onboarding', 'paused'];
+    }
+
+    function isValidProject(data) {
+      return data.clientId is string && isValidId(data.clientId) &&
+             exists(/databases/$(database)/documents/clients/$(data.clientId)) &&
+             get(/databases/$(database)/documents/clients/$(data.clientId)).data.agencyId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.status in ['active', 'completed', 'on-hold', 'cancelled'] &&
+             (data.budget == null || data.budget is number) &&
+             (data.description == null || (data.description is string && data.description.size() <= 2000));
+    }
+
+    function isValidEmailCampaign(data) {
+      return data.ownerId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.subject is string && data.subject.size() <= 200;
+    }
+
+    function isValidWorkflow(data) {
+      return data.ownerId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.trigger is string && data.trigger.size() <= 100 &&
+             data.status in ['active', 'paused'];
+    }
+
+    function isValidInvoice(data) {
+      return data.clientId is string &&
+             data.amount is number &&
+             data.status in ['paid', 'pending', 'overdue'];
+    }
+
+    function isValidMilestone(data) {
+      return data.projectId is string && isValidId(data.projectId) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.status in ['pending', 'in-progress', 'completed'] &&
+             data.dueDate is string &&
+             (data.assignedTo == null || (data.assignedTo is string && data.assignedTo.size() <= 100)) &&
+             (data.remindDaysBefore == null || data.remindDaysBefore is int) &&
+             (data.notificationSent == null || data.notificationSent is bool);
+    }
+
+    function isValidNotification(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             data.severity in ['info', 'warning', 'critical'] &&
+             (data.read == null || data.read is bool);
+    }
+
+    match /notifications/{notificationId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidNotification(incoming()) && isValidId(notificationId);
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /leads/{leadId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidLead(incoming()) && isValidId(leadId);
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    isValidLead(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name']);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /clients/{clientId} {
+      allow get, list: if isSignedIn() && resource.data.agencyId == request.auth.uid;
+      allow create: if isSignedIn() && isValidClient(incoming()) && isValidId(clientId);
+      allow update: if isSignedIn() && existing().agencyId == request.auth.uid &&
+                    isValidClient(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'companyName', 'website', 'email', 'phone', 'contactPerson', 'status', 'healthScore', 'revenue']);
+      allow delete: if isSignedIn() && existing().agencyId == request.auth.uid;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/clients/$(existing().clientId)).data.agencyId == request.auth.uid; 
+      allow list: if isSignedIn() && resource.data.agencyId == request.auth.uid; 
+      allow create: if isSignedIn() && isValidId(projectId) && isValidProject(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().agencyId == request.auth.uid && isValidProject(incoming()) && incoming().clientId == existing().clientId && incoming().agencyId == existing().agencyId;
+      allow delete: if isSignedIn() && existing().agencyId == request.auth.uid;
+
+      match /milestones/{milestoneId} {
+        function canManageMilestones() {
+          let project = get(/databases/$(database)/documents/projects/$(projectId));
+          let client = get(/databases/$(database)/documents/clients/$(project.data.clientId));
+          return client.data.agencyId == request.auth.uid;
+        }
+
+        allow list, get: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(milestoneId) && isValidMilestone(incoming()) && 
+                      incoming().projectId == projectId && canManageMilestones();
+        allow update: if isSignedIn() && isValidMilestone(incoming()) && canManageMilestones();
+        allow delete: if isSignedIn() && canManageMilestones();
+      }
+    }
+
+    match /email_campaigns/{campaignId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidEmailCampaign(incoming()) && isValidId(campaignId);
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    isValidEmailCampaign(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subject', 'body', 'subjectB', 'bodyB', 'status', 'scheduledAt', 'metrics']);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /automated_workflows/{workflowId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidWorkflow(incoming()) && isValidId(workflowId);
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    isValidWorkflow(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'trigger', 'status', 'steps']);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /email_lists/{listId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /social_accounts/{accountId} {
+      allow list: if isSignedIn() && resource.data.agencyId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.agencyId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().agencyId == request.auth.uid;
+      allow update: if isSignedIn() && existing().agencyId == request.auth.uid && incoming().agencyId == existing().agencyId;
+      allow delete: if isSignedIn() && existing().agencyId == request.auth.uid;
+    }
+
+    match /invoices/{invoiceId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidInvoice(incoming());
+      allow update: if isSignedIn() && isValidInvoice(incoming());
+    }
+
+    match /ai_trends/{trendId} {
+      allow read: if isSignedIn();
+      allow write: if false; // System only
+    }
+
     // --- BRAND STRATEGY SECURITY ---
     match /brands/{brandId} {
       function isValidBrand(data) {

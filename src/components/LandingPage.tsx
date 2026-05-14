@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   Sparkles, 
   BrainCircuit, 
@@ -24,15 +24,21 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import BrandLogo from "./BrandLogo";
+import LegalPages from "./LegalPages";
 
 interface LandingPageProps {
   onLogin: () => void;
+  onSocialLogin: (platform: string) => void;
   onEnterDemo?: () => void;
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
 }
 
-export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMode }: LandingPageProps) {
+export default function LandingPage({ onLogin, onSocialLogin, onEnterDemo, darkMode, setDarkMode }: LandingPageProps) {
+  const [legalView, setLegalView] = useState<{ active: boolean; section: 'about' | 'terms' | 'privacy' | 'payment' }>({ 
+    active: false, 
+    section: 'about' 
+  });
   const navigateToDashboard = onEnterDemo || onLogin;
   const features = [
     {
@@ -167,6 +173,15 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
     visible: { opacity: 1, y: 0 }
   };
 
+  if (legalView.active) {
+    return (
+      <LegalPages 
+        initialSection={legalView.section} 
+        onBack={() => setLegalView({ ...legalView, active: false })} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans transition-colors duration-500">
       {/* Navigation */}
@@ -289,13 +304,14 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
             <span>VERSION 4.0 STABLE RELEASE</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] max-w-5xl mx-auto text-slate-950 dark:text-white">
-            The <span className="text-orange-600">Cognitive Core</span> For Your Brand Empire.
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-slate-950 dark:text-white leading-[0.85] tracking-tighter uppercase">
+            NEURAL OS <br />
+            <span className="text-orange-600">FOR SOCIAL</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-slate-600 dark:text-stone-400 max-w-2xl mx-auto font-medium leading-relaxed">
-            Brandavox AI is the professional-grade creative operating system for modern brands. 
-            Unified intelligence, strategic foresight, and high-fidelity output—all in one minimalist interface.
+          <p className="text-lg md:text-xl text-slate-600 dark:text-stone-400 max-w-3xl mx-auto font-medium leading-relaxed">
+            Brandavox AI is the unified intelligence layer for modern social media managers. 
+            Synchronize content, client empires, and neural automation into a single high-velocity matrix.
           </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
@@ -311,6 +327,24 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
               >
                 Enter Demo Engine
               </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-6">
+              <p className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Alternatively, verify via Social Nodes:</p>
+              {[
+                { id: 'twitter', label: 'Twitter', color: 'hover:text-sky-400' },
+                { id: 'instagram', label: 'Instagram', color: 'hover:text-pink-500' },
+                { id: 'linkedin', label: 'LinkedIn', color: 'hover:text-blue-600' },
+                { id: 'facebook', label: 'Facebook', color: 'hover:text-indigo-600' }
+              ].map(social => (
+                <button 
+                  key={social.id}
+                  onClick={() => onSocialLogin(social.id)}
+                  className={`nm-button bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:scale-105 ${social.color}`}
+                >
+                  {social.label}
+                </button>
+              ))}
             </div>
           
           <div className="flex flex-col items-center gap-6 pt-12">
@@ -596,6 +630,15 @@ export default function LandingPage({ onLogin, onEnterDemo, darkMode, setDarkMod
                    <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">My Portfolio</button></li>
                    <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Analytics Hub</button></li>
                    <li><button onClick={onLogin} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Team Space</button></li>
+                </ul>
+             </div>
+             <div className="space-y-6 flex flex-col items-center">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Company</h5>
+                <ul className="space-y-4 flex flex-col items-center">
+                   <li><button onClick={() => setLegalView({ active: true, section: 'about' })} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">About Us</button></li>
+                   <li><button onClick={() => setLegalView({ active: true, section: 'terms' })} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Terms of Use</button></li>
+                   <li><button onClick={() => setLegalView({ active: true, section: 'privacy' })} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Privacy Policy</button></li>
+                   <li><button onClick={() => setLegalView({ active: true, section: 'payment' })} className="text-sm font-black text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors uppercase">Payment Policy</button></li>
                 </ul>
              </div>
              <div className="space-y-6 flex flex-col items-center">

@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- PHASE 3: Primitives ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isVerifiedUser() { return isSignedIn() && request.auth.token.email_verified == true; }
+
+    // --- PHASE 4: Entity Validators ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.keys().size() <= 6 &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 100;
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorId', 'content', 'platform', 'status']) &&
+             data.authorId == request.auth.uid &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.platform in ['twitter', 'linkedin', 'facebook', 'instagram'] &&
+             data.status in ['draft', 'scheduled', 'published'];
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['ownerId', 'email', 'status']) &&
+             data.ownerId == request.auth.uid &&
+             data.email is string && data.email.size() <= 100 &&
+             data.status in ['verified', 'pending', 'blocked'];
+    }
+
+    function isValidClient(data) {
+      return data.agencyId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.status in ['active', 'onboarding', 'paused'];
+    }
+
+    // --- PHASE 5: Implementation ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']);
+    }
+
+    match /posts/{postId} {
+      allow get: if isSignedIn() && existing().authorId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      allow create: if isSignedIn() && isValidPost(incoming()) && isValidId(postId);
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && 
+                    isValidPost(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['content', 'status', 'scheduledAt', 'mediaUrls']);
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    match /leads/{leadId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidLead(incoming()) && isValidId(leadId);
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    isValidLead(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name']);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /clients/{clientId} {
+      allow get, list: if isSignedIn() && resource.data.agencyId == request.auth.uid;
+      allow create: if isSignedIn() && isValidClient(incoming()) && isValidId(clientId);
+      allow update: if isSignedIn() && existing().agencyId == request.auth.uid &&
+                    isValidClient(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'companyName', 'website', 'status']);
+      allow delete: if isSignedIn() && existing().agencyId == request.auth.uid;
+    }
+
+    function isValidEmailCampaign(data) {
+      return data.ownerId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.subject is string && data.subject.size() <= 200;
+    }
+
+    function isValidInvoice(data) {
+      return data.clientId is string &&
+             data.amount is number &&
+             data.status in ['paid', 'pending', 'overdue'];
+    }
+
+    match /email_campaigns/{campaignId} {
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidEmailCampaign(incoming()) && isValidId(campaignId);
+      allow update: if isSignedIn() && existing().ownerId == request.auth.uid &&
+                    isValidEmailCampaign(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subject', 'body', 'subjectB', 'bodyB', 'status', 'scheduledAt', 'metrics']);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /invoices/{invoiceId} {
+      allow get, list: if isSignedIn(); // Add agency mapping check if possible, or filter by clientId
+      allow create: if isSignedIn() && isValidInvoice(incoming());
+      allow update: if isSignedIn() && isValidInvoice(incoming());
+    }
+
+    match /ai_trends/{trendId} {
+      allow read: if isSignedIn();
+      allow write: if false; // System-only
+    }
+
+    match /portfolios/{portfolioId} {
+      allow read: if true; // Publicly accessible
+      allow write: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // Simplified for other modules due to brevity, but using the same ownership pattern
+    match /tasks/{taskId} {
+      allow read, write: if isSignedIn() && (resource == null || resource.data.authorId == request.auth.uid) && (request.resource == null || request.resource.data.authorId == request.auth.uid);
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
+      }
+    }
+
+    match /ai_creations/{creationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+    }
+
+    match /brands/{brandId} {
+      allow read, write: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid) && (request.resource == null || request.resource.data.ownerId == request.auth.uid);
+    }
+  }
+}

@@ -14,11 +14,14 @@ import {
   Sparkles,
   Activity,
   BarChart3,
-  Globe
+  Globe,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db } from "../lib/firebase";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { cn } from "../lib/utils";
 
 const mockData = [
   { name: "Mon", reach: 4000, engagement: 2400 },
@@ -42,46 +45,6 @@ import { EncryptionService } from "../lib/security/encryption";
 const ROOM_KEY = "NEXURA_GLOBAL_NERVE_SECURE";
 
 export default function Dashboard({ user, onNavigate }: DashboardProps) {
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Only fetch from Firestore if we have a real user (not guest)
-    if (!user || user.uid === 'guest-user') {
-      if (user?.uid === 'guest-user') {
-         // Mock activity for demo mode
-         setRecentActivity([
-           { id: 'm1', senderName: 'System', text: 'Welcome to Brandavox Demo', timestamp: { toDate: () => new Date() } },
-           { id: 'm2', senderName: 'Nerve AI', text: 'Neural Engine standby...', timestamp: { toDate: () => new Date() } }
-         ]);
-      }
-      return;
-    }
-
-    const q = query(
-      collection(db, "chats", "global-nerve", "messages"),
-      orderBy("timestamp", "desc"),
-      limit(4)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const activities = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const text = data.isEncrypted 
-          ? EncryptionService.decrypt(data.cipherText || "", ROOM_KEY)
-          : data.text;
-          
-        return {
-          id: doc.id,
-          ...data,
-          text: text ? (text.length > 40 ? text.substring(0, 40) + '...' : text) : '[[ENCRYPTED]]'
-        };
-      });
-      setRecentActivity(activities);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
   const handleAutoInvoice = () => {
     generateInvoice({
       name: "Tech Sam",
@@ -104,25 +67,25 @@ export default function Dashboard({ user, onNavigate }: DashboardProps) {
            </div>
            <div className="flex flex-wrap justify-center gap-4">
               <button 
-                onClick={() => onNavigate?.('ai_studio')}
-                className="nm-button px-6 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-all text-orange-600 bg-white dark:bg-slate-900"
+                onClick={() => onNavigate?.('ai_studio_content')}
+                className="nm-button px-6 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-all text-indigo-600 bg-white dark:bg-slate-900"
               >
                 <BrainCircuit className="w-5 h-5" />
+                <span className="font-black text-xs uppercase tracking-widest">Content Generator</span>
+              </button>
+              <button 
+                onClick={() => onNavigate?.('ai_studio_image')}
+                className="nm-button px-6 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-all text-orange-600 bg-white dark:bg-slate-900"
+              >
+                <Sparkles className="w-5 h-5" />
                 <span className="font-black text-xs uppercase tracking-widest">8K Image Lab</span>
               </button>
               <button 
-                onClick={() => onNavigate?.('ai_studio')}
+                onClick={() => onNavigate?.('ai_studio_voice')}
                 className="nm-button px-6 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-all text-amber-600 bg-white dark:bg-slate-900"
               >
                 <Mic2 className="w-5 h-5" />
                 <span className="font-black text-xs uppercase tracking-widest">Voice Synthesis</span>
-              </button>
-              <button 
-                onClick={() => onNavigate?.('editor')}
-                className="nm-button px-6 py-4 rounded-2xl flex items-center gap-3 hover:scale-105 transition-all text-slate-950 dark:text-white bg-white dark:bg-slate-900"
-              >
-                <PenTool className="w-5 h-5" />
-                <span className="font-black text-xs uppercase tracking-widest">Photoshop Pro</span>
               </button>
            </div>
         </div>
@@ -188,79 +151,38 @@ export default function Dashboard({ user, onNavigate }: DashboardProps) {
           </div>
         </div>
 
-        <div className="nm-flat p-8 rounded-3xl border border-slate-100 dark:border-white/5">
-          <h3 className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tight mb-6">Recent Campaigns</h3>
-          <div className="space-y-6">
+        <div className="nm-flat p-8 rounded-3xl border border-slate-100 dark:border-white/5 flex flex-col">
+          <h3 className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tight mb-6">Social Health</h3>
+          <div className="space-y-6 flex-1">
             {[
-              { name: "Summer Launch", progress: 85, status: "Active", color: "bg-orange-600" },
-              { name: "Brand Refresh", progress: 40, status: "Draft", color: "bg-amber-500" },
-              { name: "Annual Gala", progress: 100, status: "Completed", color: "bg-orange-500" },
-            ].map((c, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-black text-slate-900 dark:text-slate-100 uppercase">{c.name}</span>
-                  <span className="text-slate-600 dark:text-slate-400 font-bold">{c.progress}%</span>
-                </div>
-                <div className="h-3 w-full nm-inset rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${c.progress}%` }}
-                    className={`h-full ${c.color}`} 
-                  />
-                </div>
+              { platform: "Twitter", health: 92, status: "Peak", color: "text-sky-500" },
+              { platform: "Instagram", health: 78, status: "Averaging", color: "text-pink-500" },
+              { platform: "LinkedIn", health: 45, status: "Dip Detected", color: "text-blue-700" },
+            ].map((p, i) => (
+              <div key={i} className="flex items-center justify-between p-4 nm-inset rounded-2xl">
+                 <div className="flex items-center gap-3">
+                    <div className={cn("w-2 h-2 rounded-full animate-pulse", p.health > 80 ? "bg-emerald-500" : (p.health > 60 ? "bg-amber-500" : "bg-rose-500"))} />
+                    <span className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">{p.platform}</span>
+                 </div>
+                 <div className="text-right">
+                    <p className="text-xs font-black">{p.health}%</p>
+                    <p className={cn("text-[8px] font-bold uppercase", p.color)}>{p.status}</p>
+                 </div>
               </div>
             ))}
           </div>
+          <button 
+            onClick={() => onNavigate?.('inbox')}
+            className="w-full mt-6 py-4 nm-button rounded-2xl text-[10px] font-black uppercase text-orange-600 hover:scale-[1.02] transition-transform"
+          >
+            Optimize Engagement
+          </button>
         </div>
       </div>
 
-      {/* Lower Row: Messages & Auto-deals */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div className="nm-flat p-8 rounded-3xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase text-slate-950 dark:text-white tracking-tight">Nerve Activity</h3>
-              <div className="flex gap-1">
-                 {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {recentActivity.length > 0 ? recentActivity.map((item, i) => (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={item.id} 
-                    className="nm-inset p-4 rounded-2xl flex items-center justify-between group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0 pr-4">
-                      <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest truncate">{item.senderName}</p>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white tracking-tighter truncate">{item.text}</p>
-                    </div>
-                    <div className="text-[8px] font-black text-slate-400 uppercase whitespace-nowrap bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                       {item.timestamp ? new Date(item.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
-                    </div>
-                  </motion.div>
-                )) : (
-                  <div className="text-center py-12 space-y-4">
-                     <Activity className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto animate-pulse" />
-                     <p className="text-xs font-black text-slate-400 uppercase">Listening for Nerve activity...</p>
-                  </div>
-                )}
-              </AnimatePresence>
-              {recentActivity.length > 0 && (
-                <button 
-                  onClick={() => onNavigate?.('chat')}
-                  className="w-full py-3 nm-button rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-orange-600 transition-colors"
-                >
-                  Join the Live Nerve
-                </button>
-              )}
-            </div>
-         </div>
-
-         <div className="lg:col-span-2 nm-flat p-8 rounded-3xl relative overflow-hidden group">
+    {/* Lower Row: Velocity Analytics */}
+      <div className="grid grid-cols-1 gap-8">
+         <div className="nm-flat p-8 rounded-3xl relative overflow-hidden group">
             <div className="flex justify-between items-center mb-8">
               <div className="space-y-1">
                 <h3 className="text-xl font-black text-slate-950 dark:text-white uppercase tracking-tight">Campaign Velocity</h3>

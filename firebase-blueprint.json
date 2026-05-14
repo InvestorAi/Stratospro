@@ -99,12 +99,262 @@
         "status": { "type": "string", "enum": ["active", "archived", "draft"] },
         "reach": { "type": "integer" },
         "audience": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "colorPalette": { "type": "array", "items": { "type": "string" } },
+        "typography": { "type": "string" },
+        "logoUsage": { "type": "string" },
+        "strategicNotes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "ownerId", "status"]
+    },
+    "Presence": {
+      "title": "User Presence",
+      "description": "Real-time presence indicator for a specific resource",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "userName": { "type": "string" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "resourceId": { "type": "string" }
+      },
+      "required": ["uid", "resourceId", "lastSeen"]
+    },
+    "Task": {
+      "title": "Content Task",
+      "description": "Task associated with content creation workflow",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["todo", "in-progress", "done"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "title", "status"]
+    },
+    "EmailCampaign": {
+      "title": "Email Campaign",
+      "description": "Email marketing campaign with optional A/B testing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "subjectB": { "type": "string" },
+        "bodyB": { "type": "string" },
+        "isABTest": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["draft", "sent", "archived", "scheduled"] },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "opens": { "type": "integer" },
+            "clicks": { "type": "integer" },
+            "bounces": { "type": "integer" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "subject", "body"]
+    },
+    "AutomatedWorkflow": {
+      "title": "Automated Workflow",
+      "description": "Behavior-based email automation sequences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "trigger": { "type": "string" },
+        "steps": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["delay", "email"] },
+              "delayMs": { "type": "integer" },
+              "campaignId": { "type": "string" }
+            }
+          }
+        },
+        "status": { "type": "string", "enum": ["active", "paused"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "trigger", "status"]
+    },
+    "EmailList": {
+      "title": "Email List",
+      "description": "Segments of email subscribers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "subscribers": { "type": "integer" },
+        "provider": { "type": "string", "enum": ["ses", "alibaba", "mailwizz"] },
+        "status": { "type": "string", "enum": ["active", "syncing"] },
+        "triggers": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "provider", "status"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Potential customer or subscriber",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["verified", "pending", "blocked"] },
+        "source": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "email", "status"]
+    },
+    "Client": {
+      "title": "Agency Client",
+      "description": "Information about a client managed by the agency",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "agencyId": { "type": "string" },
+        "name": { "type": "string" },
+        "companyName": { "type": "string" },
+        "website": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "onboarding", "paused"] },
+        "healthScore": { "type": "integer" },
+        "revenue": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["agencyId", "name", "status", "email"]
+    },
+    "Project": {
+      "title": "Client Project",
+      "description": "A project associated with a client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "on-hold", "cancelled"] },
+        "budget": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "title", "status"]
+    },
+    "Milestone": {
+      "title": "Project Milestone",
+      "description": "A specific achievement or target within a project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed"] },
+        "assignedTo": { "type": "string", "description": "Email or name of the assigned user" },
+        "remindDaysBefore": { "type": "integer", "default": 3 },
+        "notificationSent": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectId", "title", "status", "dueDate"]
+    },
+    "SocialAccount": {
+      "title": "Linked Social Account",
+      "description": "Credentials and metadata for a linked social media profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "agencyId": { "type": "string" },
+        "platform": { "type": "string", "enum": ["facebook", "instagram", "twitter", "linkedin", "tiktok", "youtube"] },
+        "username": { "type": "string" },
+        "accessToken": { "type": "string" },
+        "status": { "type": "string", "enum": ["connected", "expired"] },
+        "followers": { "type": "integer" }
+      },
+      "required": ["clientId", "platform", "username"]
+    },
+    "Competitor": {
+      "title": "Competitor Profile",
+      "description": "Competitor tracked by AI for market intelligence",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "name": { "type": "string" },
+        "socialUrls": { "type": "array", "items": { "type": "string" } },
+        "reportSummary": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "name"]
+    },
+    "Invoice": {
+      "title": "Client Invoice",
+      "description": "Billing record for agency services",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["paid", "pending", "overdue"] },
+        "items": { "type": "array" }
+      },
+      "required": ["clientId", "amount", "status"]
+    },
+    "AiTrend": {
+      "title": "AI Trend Analysis",
+      "description": "Real-time market trends detected by AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "topic": { "type": "string" },
+        "relevanceScore": { "type": "number" },
+        "platform": { "type": "string" },
+        "suggestedHooks": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notification": {
+      "title": "System Notification",
+      "description": "In-app alerts and notifications for users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "category": { "type": "string" },
+        "read": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "severity"]
     }
   },
   "firestore": {
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System-wide notifications"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "Individual user profiles"
@@ -112,6 +362,10 @@
     "/posts/{postId}": {
       "schema": "Post",
       "description": "Global collection of posts"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks for content creation workflow"
     },
     "/chats/{chatId}": {
       "schema": "Chat",
@@ -125,6 +379,10 @@
       "schema": "Portfolio",
       "description": "User portfolios and landing pages"
     },
+    "/portfolios/{portfolioId}/presence/{presenceId}": {
+      "schema": "Presence",
+      "description": "Real-time presence users in a portfolio session"
+    },
     "/ai_creations/{creationId}": {
       "schema": "AI_Creation",
       "description": "Records of AI-generated content"
@@ -132,6 +390,50 @@
     "/brands/{brandId}": {
       "schema": "Brand",
       "description": "Enterprise brand profiles and strategic data"
+    },
+    "/email_campaigns/{campaignId}": {
+      "schema": "EmailCampaign",
+      "description": "Email campaigns for marketing"
+    },
+    "/automated_workflows/{workflowId}": {
+      "schema": "AutomatedWorkflow",
+      "description": "Behavioral marketing workflows"
+    },
+    "/email_lists/{listId}": {
+      "schema": "EmailList",
+      "description": "Subscriber segments and lists"
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Customer leads and signups"
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Agency client management"
+    },
+    "/social_accounts/{accountId}": {
+      "schema": "SocialAccount",
+      "description": "Connected social media profiles"
+    },
+    "/competitors/{competitorId}": {
+      "schema": "Competitor",
+      "description": "Competitor intelligence tracking"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Financial billing records"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Projects associated with clients"
+    },
+    "/projects/{projectId}/milestones/{milestoneId}": {
+      "schema": "Milestone",
+      "description": "Milestones for a specific project"
+    },
+    "/ai_trends/{trendId}": {
+      "schema": "AiTrend",
+      "description": "Real-time social media trend maps"
     }
   }
 }

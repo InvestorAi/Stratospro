@@ -50,4 +50,12 @@
   .dark .nm-button {
     @apply bg-slate-800 text-white shadow-[6px_6px_12px_#020617,-6px,-6px_12px_#1e293b] hover:shadow-[2px_2px_4px_#020617,-2px,-2px,4px_#1e293b] active:scale-[0.98];
   }
+
+  .neural-zoom-container {
+    @apply relative overflow-hidden rounded-3xl cursor-crosshair;
+  }
+
+  .neural-zoom-image {
+    @apply transition-transform duration-700 ease-out hover:scale-125;
+  }
 }

@@ -22,12 +22,15 @@ import {
   Banknote,
   Building,
   RefreshCw,
-  Target
+  Target,
+  Calendar
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { BrandavoxAI } from "../lib/ai/gemini-engine";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface OperationDoc {
   id: string;
@@ -36,7 +39,8 @@ interface OperationDoc {
   amount: string;
   status: string;
   createdAt: any;
-  items?: any;
+  items?: string;
+  dueDate?: string;
   bankDetails?: string;
 }
 
@@ -53,6 +57,7 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
     client: "",
     amount: "",
     type: "Invoice",
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     items: "",
     bankDetails: "Nexus Bank • IBAN: NX88 2000 4400 9900"
   });
@@ -94,7 +99,14 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
         setDocs([{ id: `mock_${Date.now()}`, ...data, createdAt: { toDate: () => new Date() } }, ...docs]);
       }
       setShowDocModal(false);
-      setDocForm({ client: "", amount: "", type: "Invoice", items: "", bankDetails: docForm.bankDetails });
+      setDocForm({ 
+        client: "", 
+        amount: "", 
+        type: "Invoice", 
+        items: "", 
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        bankDetails: docForm.bankDetails 
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -143,6 +155,86 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
         setDocs(docs.filter(d => d.id !== id));
       }
     } catch (e) { console.error(e); }
+  };
+
+  const downloadAsPDF = (docData: OperationDoc) => {
+    const doc = new jsPDF();
+    const brandName = activeBrand?.name || "Brandavox Global";
+    const brandNiche = activeBrand?.niche || "Digital Solutions";
+    
+    // Header
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text(brandName.toUpperCase(), 20, 25);
+    
+    doc.setFontSize(10);
+    doc.text(brandNiche.toUpperCase(), 20, 32);
+    
+    doc.setFontSize(30);
+    doc.setTextColor(255, 255, 255, 0.1);
+    doc.text(docData.type.toUpperCase(), 200, 30, { align: 'right' });
+    
+    // Client Info
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 20, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text(docData.client, 20, 62);
+    
+    // Date Info
+    doc.setFont("helvetica", "bold");
+    doc.text("DATE:", 140, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text(docData.createdAt ? new Date(docData.createdAt.toDate?.() || docData.createdAt).toLocaleDateString() : new Date().toLocaleDateString(), 140, 62);
+    
+    if (docData.dueDate) {
+      doc.setFont("helvetica", "bold");
+      doc.text("DUE DATE:", 140, 72);
+      doc.setFont("helvetica", "normal");
+      doc.text(docData.dueDate, 140, 79);
+    }
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("DOCUMENT ID:", 20, 72);
+    doc.setFont("helvetica", "normal");
+    doc.text(`#${docData.id.slice(-8).toUpperCase()}`, 20, 79);
+    
+    // Items Table
+    const items = docData.items ? docData.items.split('\n').map(line => {
+      const [desc, val] = line.split(':').map(s => s.trim());
+      return [desc || "Service Description", val || docData.amount];
+    }) : [["Standard Service Fee", docData.amount]];
+    
+    autoTable(doc, {
+      startY: 95,
+      head: [['Description', 'Amount']],
+      body: items,
+      headStyles: { fillColor: [234, 88, 12] }, // orange-600
+      styles: { font: "helvetica", fontSize: 9 },
+    });
+    
+    // Footer / Bank Details
+    const finalY = (doc as any).lastAutoTable.finalY || 150;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL VALUATION:", 140, finalY + 20);
+    doc.setFontSize(16);
+    doc.setTextColor(234, 88, 12);
+    doc.text(docData.amount, 140, finalY + 30);
+    
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("PAYMENT INSTRUMENT:", 20, finalY + 50);
+    doc.setFont("helvetica", "normal");
+    doc.text(docData.bankDetails || "Contact support for details.", 20, finalY + 55);
+    
+    doc.save(`${docData.type}_${docData.client.replace(/\s+/g, '_')}.pdf`);
   };
 
   return (
@@ -215,7 +307,12 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
                         >
                           <Zap className="w-5 h-5" />
                         </button>
-                        <button className="p-3 nm-button rounded-xl text-slate-400 hover:text-orange-600 transition-colors"><Download className="w-5 h-5" /></button>
+                        <button 
+                          onClick={() => downloadAsPDF(doc)}
+                          className="p-3 nm-button rounded-xl text-slate-400 hover:text-orange-600 transition-colors"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
                         <button 
                           onClick={() => deleteDocument(doc.id)}
                           className="p-3 nm-button rounded-xl text-slate-400 hover:text-red-500 transition-colors"
@@ -260,7 +357,7 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
 
                 <div className="h-px w-full bg-slate-100 dark:bg-white/10" />
 
-                <div className="grid grid-cols-2 gap-12">
+                <div className="grid grid-cols-3 gap-12">
                    <div className="space-y-4">
                       <div className="space-y-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase">Operational Node</p>
@@ -271,11 +368,20 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
                         <p className="text-xs font-mono text-slate-500">{docForm.bankDetails}</p>
                       </div>
                    </div>
+                   <div className="space-y-4">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase text-orange-600">Sync Pipeline</p>
+                        <p className="text-sm font-bold text-slate-950 dark:text-white flex items-center gap-2">
+                           <Calendar className="w-4 h-4" /> Due: {docForm.dueDate}
+                        </p>
+                      </div>
+                   </div>
                    <div className="text-right space-y-2">
                       <p className="text-[10px] font-black text-slate-400 uppercase">Total Valuation</p>
-                      <p className="text-4xl font-black text-orange-600 tracking-tighter">$ --.--</p>
+                      <p className="text-4xl font-black text-orange-600 tracking-tighter">${docForm.amount || '--.--'}</p>
                    </div>
                 </div>
+             </div>
 
                 <div className="pt-12 flex justify-between items-end">
                    <div className="flex gap-4">
@@ -288,7 +394,7 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
                 </div>
              </div>
           </div>
-        </div>
+
 
         {/* Financial Intelligence Feed */}
         <div className="space-y-8">
@@ -329,7 +435,6 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
         </div>
       </div>
 
-      {/* Autoresponder Result Modal */}
       <AnimatePresence>
         {showAutoresponder && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -392,6 +497,15 @@ export default function OperationsHub({ user, activeBrand }: { user: any, active
                           className="w-full nm-inset p-4 rounded-2xl font-bold bg-transparent border-none placeholder:text-slate-400"
                         />
                       </div>
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Due Date</label>
+                      <input 
+                        type="date"
+                        value={docForm.dueDate}
+                        onChange={e => setDocForm({...docForm, dueDate: e.target.value})}
+                        className="w-full nm-inset p-4 rounded-2xl font-bold bg-transparent border-none"
+                      />
                    </div>
                    <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Client Identity</label>
